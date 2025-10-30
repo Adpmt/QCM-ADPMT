@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quiz Anglais Aero – Offline</title><!-- PMT sig: pmt / PmT / PMt -->
+  <style>
+    /* PMt hidden mark */
+    html, body { min-height: 100vh; }
+    body {
+  background: #0f172a;
+  color: #e5e7eb;
+  font-family: system-ui, Segoe UI, Roboto, sans-serif;
+  margin: 0;
+  min-height: 100vh;
+
+  /* centrage horizontal seulement */
+  display: flex;
+  justify-content: center;
+
+  /* on remet du padding pour respirer */
+  padding: 20px;
+}
+
+    h1{margin:0 0 10px}
+    .card{
+      background:#1e293b;
+      padding:16px;
+      border-radius:12px;
+      box-shadow:0 0 10px rgba(0,0,0,.4)
+    }
+.main {
+  width: 100%;
+  max-width: 860px;
+  margin: 20px;
+}
+    .side{
+      width:320px;
+      min-width:280px;
+      max-height:90vh;
+      overflow:auto;
+      display:flex;
+      flex-direction:column;
+      gap:10px
+    }
+    select,input,button{
+      margin:4px 0;
+      padding:8px;
+      border-radius:8px;
+      border:none
+    }
+    input,select{width:100%}
+    button{cursor:pointer;background:#2563eb;color:white}
+    .row{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap
+    }
+    .ok{color:#22c55e}
+    .bof{color:#fbbf24}
+    .bad{color:#ef4444}
+    .feedback{margin-top:10px;min-height:40px}
+    .log{
+      background:#0b1223;
+      margin-top:10px;
+      padding:10px;
+      border-radius:8px;
+      height:300px;
+      overflow:auto
+    }
+    .muted{color:#9ca3af;font-size:.9rem}
+    .lexique{
+      background:#0b1223;
+      border-radius:8px;
+      padding:10px;
+      max-height:350px;
+      overflow:auto;
+      white-space:pre-wrap
+    }
+    .tag{
+      display:inline-block;
+      background:#0b1223;
+      border:1px solid #334155;
+      border-radius:999px;
+      padding:4px 8px;
+      font-size:.85rem
+    }
+    .pill{
+      background:#0b1223;
+      border-radius:999px;
+      padding:6px 10px;
+      display:inline-flex;
+      gap:6px;
+      align-items:center
+    }
+    table{width:100%;border-collapse:collapse}
+    th,td{
+      padding:8px;
+      border-bottom:1px solid #334155;
+      text-align:left
+    }
+    th{color:#cbd5e1}
+    .nameBox{
+      flex:0 1 30%;
+      max-width:30%;
+      min-width:160px
+    }
+    .lexsearch{margin:6px 0 8px 0}
+    .hl{color:#22c55e;font-weight:600}
+
+    /* Thèmes (dropdown) */
+    .dropdown{position:relative;display:inline-block}
+    .dropdown > button{background:#334155}
+    .dropdown-panel{
+      position:absolute;
+      top:110%;
+      left:0;
+      z-index:10;
+      min-width:260px;
+      background:#0b1223;
+      border:1px solid #334155;
+      border-radius:10px;
+      padding:10px;
+      box-shadow:0 10px 20px rgba(0,0,0,.35);
+      display:none;
+    }
+    .dropdown.open .dropdown-panel{display:block}
+    .theme-row{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:4px 0
+    }
+    .theme-row label{flex:1;cursor:pointer}
+    .theme-actions{
+      display:flex;
+      justify-content:space-between;
+      gap:8px;
+      margin-top:8px
+    }
+    .btn-gray{background:#475569}
+    .badge{
+      background:#0b1223;
+      border:1px solid #334155;
+      border-radius:999px;
+      padding:2px 8px;
+      font-size:.8rem
+    }
+
+    /* Badge "résultat précédent" */
+    .badge-status{
+      margin-left:10px;
+      padding:2px 10px;
+      border-radius:999px;
+      font-size:.9rem;
+      border:1px solid #334155;
+      display:none
+    }
+    .badge-ok{color:#22c55e;border-color:#14532d}
+    .badge-bof{color:#fbbf24;border-color:#92400e}
+    .badge-bad{color:#ef4444;border-color:#7f1d1d}
+
+    /* Plein écran (mobile friendly) */
+    body.fs { height: 100dvh; overflow: hidden; }
+    .fab{
+      position: fixed;
+      right:16px;
+      bottom:16px;
+      z-index: 50;
+      background:#2563eb;
+      color:white;
+      border:none;
+      border-radius:999px;
+      padding:12px 14px;
+      box-shadow:0 6px 18px rgba(0,0,0,.45);
+      cursor:pointer;
+    }
+    body.fs .main{ max-width:none; }
+    body.fs .side{
+      display:none; /* masqué par défaut */
+      position: fixed;
+      z-index: 40;
+      left: 8px;
+      right: 8px;
+      bottom: 64px;
+      top: 64px;
+      width: auto;
+      max-height: none;
+      overflow: auto;
+      background:#0b1223;
+      border-radius:12px;
+      box-shadow:0 10px 20px rgba(0,0,0,.5);
+      padding: 8px;
+    }
+    body.fs .side.show{ display:block; }
+
+    /* Mobile tweaks */
+@media (max-width: 700px) {
+  body {
+    align-items: flex-start;  /* pas de centrage vertical sur mobile */
+    justify-content: center;
+    padding-top: 20px;
+  }
+}
+
+    /* Overlay leaderboard in fullscreen */
+    body.fs .leaderboard-card{ display:none }
+    body.fs .fs-history{ display:block }
+    .fs-history{ display:none }
+    body.fs .board{
+      display:none;
+      position: fixed;
+      z-index: 45;
+      left:8px;
+      right:8px;
+      top:64px;
+      bottom:64px;
+      overflow:auto;
+      background:#0b1223;
+      border-radius:12px;
+      box-shadow:0 10px 20px rgba(0,0,0,.5);
+      padding:8px
+    }
+    body.fs .board.show{ display:block }
+	
+  </style>
+</head>
+<body>
+
+  <!-- COLONNE UNIQUE -->
+  <div class="card main">
+    <h1>Quiz Anglais Aero</h1><!-- pMt -->
+
+    <!-- Paramètres joueur / mode -->
+    <div class="row">
+      <div class="nameBox">
+        <label>Prénom (max 10)</label>
+        <input id="player" placeholder="Ton nom" maxlength="10" />
+      </div>
+
+      <div style="flex:1">
+        <label>Direction</label>
+        <select id="direction">
+          <option value="FREN">Fr → En</option>
+          <option value="ENFR">En → Fr</option>
+        </select>
+      </div>
+
+      <div style="width:130px">
+        <label>Tol. fautes (0.5 pt)</label>
+        <input type="number" id="maxTypos" min="0" max="10" value="4" />
+      </div>
+
+      <div style="width:150px">
+        <label>Mode</label>
+        <select id="mode">
+          <option value="FREE">Libre</option>
+          <option value="TIMER">Chrono</option>
+        </select>
+      </div>
+
+      <div style="width:130px" id="timerCfg">
+        <label>Temps (s/q)</label>
+        <input type="number" id="seconds" min="3" max="120" value="10" />
+      </div>
+
+      <!-- Sélecteur multi-thèmes -->
+      <div style="flex:1;min-width:260px">
+        <label>Thèmes (multi-choix)</label>
+        <div class="dropdown" id="themeDropdown">
+          <button id="themeBtn">
+            Choisir des thèmes <span class="badge" id="themeCount">1 sélection</span>
+          </button>
+          <div class="dropdown-panel" id="themePanel">
+            <div id="themeList"></div>
+            <div class="theme-actions">
+              <button class="btn-gray" id="checkAll">Tout sélectionner</button>
+              <button class="btn-gray" id="uncheckAll">Tout désélectionner</button>
+              <button id="closeTheme">OK</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Boutons de contrôle -->
+    <div class="row" style="margin:10px 0">
+      <button id="start">Démarrer</button>
+      <button id="validate" disabled>Valider</button>
+      <button id="stop" disabled>Stop</button>
+      <button id="restart">Recommencer</button>
+      <button id="fsToggle">Plein écran</button>
+
+      <span id="countdownWrap" class="pill" style="display:none">⏱️ <b id="countdown">10</b>s</span>
+      <span id="comboWrap" class="pill" style="display:none">🔥 x<b id="comboLen">0</b></span>
+    </div>
+
+    <!-- Zone question / réponse -->
+    <div style="font-size:1.4rem;font-weight:700;margin-top:8px">
+      <span id="question">Question...</span>
+      <span id="prevBadge" class="badge-status">OK</span>
+    </div>
+
+    <input id="answer" placeholder="Votre réponse" autocomplete="off" />
+    <div id="feedback" class="feedback"></div>
+    <div id="stats"></div>
+
+    <!-- HISTORIQUE DES RÉPONSES (toujours visible en dessous du quiz) -->
+    <div class="card" style="margin-top:16px">
+      <h3 style="margin:0 0 6px">Historique des réponses</h3>
+      <div id="log" class="log"></div>
+    </div>
+
+    <!-- LEXIQUE (optionnel, consultable hors partie) -->
+    <div class="card" style="margin-top:16px">
+      <div class="row" style="justify-content:space-between">
+        <h3 style="margin:0">Lexique</h3>
+        <button id="toggleLexique" class="tag">Afficher</button>
+      </div>
+      <div class="muted">(Verrouillé pendant la partie – affiche les thèmes sélectionnés)</div>
+      <input id="lexSearch" class="lexsearch" placeholder="Rechercher..." style="display:none" />
+      <div id="lexique" class="lexique" style="display:none"></div>
+    </div>
+
+    <!-- HISTORIQUE POUR LE MODE PLEIN ÉCRAN (mobile) -->
+    <div class="card fs-history" style="margin-top:16px">
+      <h3 style="margin:0 0 6px">Historique des réponses (plein écran)</h3>
+      <div id="logFS" class="log"></div>
+    </div>
+
+    <!-- 🏆 CLASSEMENT (tout en bas) -->
+    <div class="card leaderboard-card" style="margin-top:16px">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <h3 style="margin:0">🏆 Classement</h3>
+        <div class="row" style="gap:6px">
+          <span class="muted">Trier par :</span>
+          <button class="btn-gray" id="lbSortNote">Note</button>
+          <button class="btn-gray" id="lbSortDate">Date</button>
+        </div>
+      </div>
+
+      <div id="leaderboard"></div>
+    </div>
+
+  </div> <!-- fin .main (colonne unique) -->
+
+  <!-- Boutons flottants en plein écran -->
+  <button id="fsSide" class="fab" style="display:none">📚 Lexique</button>
+  <button id="fsBoard" class="fab" style="display:none; bottom:70px">🏆 Scores</button>
+
+
+
+  <script>
+    // (tu gardes tout ton JS ici exactement comme avant)
+  </script>
+</body>
+</html>
+
+
+  <script>
+
+    // PMT hidden tags: pmt / PMT / pMt / PmT
+
+    // ========= DONNÉES THÉMATIQUES =========
+    const THEMES = {
+      "1 COURS": `Aérofreins=Airbrakes
+Altimètre=Altimeter
+Aile=Wing
+Aileron=Aileron
+Avion=Airplane|Plane|Aircraft
+Boîte noire=Flight recorder|Black Box
+Boussole=Compass
+Cabine=Cabin
+Cabine de pilotage=Cockpit
+Carburant=Fuel
+Ceinture de sécurité=Seat belt
+Commande d’aérofreins=Airbrakes lever
+Cylindre=Cylinder
+Défaillances=Malfunctions
+Défaut=Defect
+Éclatement de pneu=Tyre burst
+Écoulement de l’air=Airflow
+Enregistreur de paramètres de vol=Flight data recorder
+Gilet de sauvetage=Life jacket
+Gouverne de dérive=Rudder
+Gouverne de profondeur=Elevator
+Fenêtre=Window
+Fissure=Crack
+Fuite de carburant=Fuel leak
+Fil à freiner=Safety wire|Lockwire
+Fuselage=Fuselage
+Hélice=Propeller
+Masque à oxygène=Oxygen mask
+Moteur=Engine
+Pare-brise=Windshield
+Pilote automatique=Automatic pilot
+Queue=Tail
+Refroidissement par air=Air cooling
+Réservoir d’essence=Fuel tank
+Siège=Seat
+Sortir le train=To extend the gear
+Train d’atterrissage=Landing gear
+Approcher=To approach
+Atterrir=To land
+Décollage=Take-off
+Frein=Brake
+Ravitaillement en vol=In-flight refueling
+Sortie de secours=Emergency exit
+Vérifier=To check
+Vitesse de croisière=Cruising speed
+Vol=Flight
+À bord=On board
+Arrière=Aft
+Boulon=Bolt
+Plafond=Ceiling
+Autorisation=Clearance
+Bielle=Connecting rod
+Soufflante=Fan
+Volet=Flap
+Hauteur=Height
+Plan fixe horizontal=Horizontal stabilizer
+Plan fixe vertical=Vertical stabilizer
+Allumage=Ignition
+Couche=Layer
+Bord d’attaque=Leading edge
+Injecteur carburant=Fuel nozzle
+Tangage=Pitch
+Avion pressurisé=Pressurized aircraft
+Inverseur de poussée=Thrust reverser
+Nervure=Rib
+Rivet=Rivet
+Roulis=Roll
+Vis=Screw
+Revêtement=Skin
+Longeron=Spar
+Bec=Slat
+Avertisseur de décrochage=Stall warning
+Lisse=Stringer
+Bougie=Spark plug
+Bord de fuite=Trailing edge
+Entrée=Intake
+Sortie (echappement)=Exhaust
+Saumon=Wing tip
+Lacet=Yaw
+Câblage=Wiring
+Cadre=Frame`,
+
+      "2 Maintenance & Inspection": `Entretien préventif = Preventive maintenance
+Entretien correctif = Corrective maintenance
+Inspection visuelle = Visual inspection
+Inspection boroscopique = Borescope inspection
+Essai au sol = Ground test
+Contrôle non destructif (CND) = Non-destructive testing (NDT)
+Maintenance lourde = Heavy maintenance
+Maintenance en ligne = Line maintenance
+Maintenance de base = Base maintenance
+Temps entre révisions = Time Between Overhaul (TBO)
+Programme d’entretien = Maintenance schedule
+Dossier de maintenance = Maintenance logbook
+Historique de maintenance = Maintenance record
+Bulletin de service = Service bulletin (SB)
+Directive de navigabilité = Airworthiness directive (AD)
+Manuel d’entretien = Maintenance manual (AMM)
+Manuel illustré de pièces = Illustrated Parts Catalog (IPC)
+Ordre de travail = Work order
+Fiche de tâche = Task card
+Rapport d’anomalie = Discrepancy report`,
+
+      "3 Composants & Systèmes": `Actionneur = Actuator
+Amortisseur = Shock absorber / Damper
+Accumulateur hydraulique = Hydraulic accumulator
+Pompe hydraulique = Hydraulic pump
+Vérin = Jack / Ram
+Capteur de pression = Pressure sensor
+Capteur de température = Temperature probe
+Système d’anti-givrage = Anti-icing system
+Système dégivrage = De-icing system
+Circuit pneumatique = Pneumatic circuit
+Circuit hydraulique = Hydraulic circuit
+Ligne de carburant = Fuel line
+Filtre à carburant = Fuel filter
+Pressostat = Pressure switch
+Thermostat = Thermostat
+Capteur d’angle d’attaque = Angle of attack sensor (AoA sensor)
+Relais = Relay
+Contacteur = Switch
+Générateur = Generator
+Alternateur = Alternator
+Batterie = Battery
+Convertisseur = Converter
+Unité de puissance auxiliaire = Auxiliary Power Unit (APU)`,
+
+      "4 Outillage & Opérations": `Clé dynamométrique = Torque wrench
+Clé à cliquet = Ratchet wrench
+Jauge = Gauge
+Pied à coulisse = Caliper
+Comparateur = Dial indicator
+Palan = Hoist
+Cric = Jack
+Outillage spécial = Special tool
+Équipement de test = Test bench / Test set
+Banc d’essai moteur = Engine test bench
+Outillage au sol = Ground support equipment (GSE)`,
+
+      "5 Structures & Réparations": `Panneau = Panel
+Revêtement composite = Composite skin
+Renfort = Reinforcement
+Doublure = Doubler
+Collage = Bonding
+Délaminage = Delamination
+Réparation structurelle = Structural repair
+Réparation temporaire = Temporary repair
+Réparation permanente = Permanent repair
+Traitement anticorrosion = Corrosion protection
+Contrôle d’épaisseur = Thickness check`,
+
+      "6 Avionique & Électronique": `Bus de données = Data bus
+Calculateur de vol = Flight computer
+Unité de commande = Control unit
+Afficheur = Display unit
+Radioaltimètre = Radio altimeter
+Transpondeur = Transponder
+VOR = VHF Omnidirectional Range
+ILS = Instrument Landing System
+GPS = Global Positioning System
+FMS = Flight Management System
+Automanette = Autothrottle`,
+
+      "7 Procédures & Sécurité": `Mise sous tension = Power-up
+Mise hors tension = Power-down
+Mise à la masse = Grounding
+Purge du circuit = System bleeding
+Vidange = Draining
+Remplissage = Refilling
+Essai fonctionnel = Functional check
+Mise en conformité = Compliance
+Isolement de circuit = Circuit isolation
+Balise de détresse = Emergency Locator Transmitter (ELT)`
+    };
+
+    // ========= PARSE & HELPERS =========
+    const $=sel=>document.querySelector(sel);
+    const normalize=s=>(s||"").normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
+
+    const isDisabledLine = (line) => {
+      const s = line.trim();
+      if (!s) return true;
+      if (/^\s*(#|\/\/|-)/.test(s)) return true;
+      if (/\b(off|ignore)\b/i.test(s)) return true;
+      return false;
+    };
+
+    function parseVocabBlock(txt){
+      return txt.split(/\r?\n/)
+        .map(l=>l.replace(/\s*\/\/.*$/,'').trim())
+        .filter(l=>l && !isDisabledLine(l))
+        .map(l=>{
+          const [fr,en]=l.split('=',2);
+          if(!fr || !en) return null;
+          return {FR:fr.trim(), EN:en.trim()};
+        })
+        .filter(Boolean);
+    }
+
+    function buildPairsFromSelectedThemes(){
+      const checkedIds = Array.from(document.querySelectorAll('.theme-check:checked')).map(c=>c.value);
+      let out=[];
+      for(const id of checkedIds){
+        out.push(...parseVocabBlock(THEMES[id]));
+      }
+      return out;
+    }
+
+    function buildDeckFromPairs(pairs, times=2){
+      const deck=[];
+      for(let i=0;i<times;i++) deck.push(...pairs);
+      for(let i=deck.length-1;i>0;i--){
+        const j=Math.floor(Math.random()*(i+1));
+        [deck[i],deck[j]]=[deck[j],deck[i]];
+      }
+      return deck;
+    }
+
+    // ====== NOUVEAU : PROGRESSION PERSISTANTE ======
+    // Clé unique pour chaque paire FR/EN
+    function makeKey(pair){
+      return normalize(pair.FR) + '::' + normalize(pair.EN);
+    }
+
+    // Charger / sauvegarder la progression des mots maîtrisés
+    function loadProgress(){
+      try{
+        return JSON.parse(localStorage.getItem('progress_Anglais')||'{}');
+      }catch(e){
+        return {};
+      }
+    }
+    function saveProgress(p){
+      localStorage.setItem('progress_Anglais', JSON.stringify(p));
+    }
+
+    let progress = loadProgress(); // { "aile::wing": "ok", ... }
+
+    // Construire un deck qui NE PREND PAS les mots déjà maîtrisés
+    function buildLearningDeck(pairs){
+      const fresh = pairs.filter(p=>{
+        const k = makeKey(p);
+        return progress[k] !== 'ok';
+      });
+
+      // s'il reste rien à apprendre -> deck vide
+      if(fresh.length===0){
+        return [];
+      }
+
+      // On peut garder le comportement "2 passages" + shuffle
+      return buildDeckFromPairs(fresh, 2);
+    }
+
+    // Compter stats de maîtrise globale (pour affichage dans updateStats)
+    function countMastery(pairs){
+      let done=0;
+      for(const p of pairs){
+        const k=makeKey(p);
+        if(progress[k]==='ok') done++;
+      }
+      return {done,total:pairs.length,left:pairs.length-done};
+    }
+
+    // ========= Algorithmes quiz =========
+    const levenshtein=(a,b)=>{if(a===b)return 0;if(!a)return b.length;if(!b)return a.length;const n=a.length,m=b.length;let prev=Array(m+1).fill(0),curr=Array(m+1).fill(0);for(let j=0;j<=m;j++)prev[j]=j;for(let i=1;i<=n;i++){curr[0]=i;for(let j=1;j<=m;j++){const cost=a[i-1]===b[j-1]?0:1;curr[j]=Math.min(prev[j]+1,curr[j-1]+1,prev[j-1]+cost);} [prev,curr]=[curr,prev];}return prev[m]};
+
+    // ===== State =====
+    let direction='FREN',maxTypos=4,asked=0,points=0,idx=0,order=[];
+	let initialDeckSize = 0;
+
+    // currentQ / currentAnswers représentent la question affichée
+    let currentQ='',currentAnswers=[];
+    // NEW : garder la paire en cours pour marquer la maîtrise
+    let currentPair=null;
+
+    let mode='FREE'; let perQuestion=10; let tRef=null; let remaining=0; let inGame=false;
+    let gameStart=0;
+
+    let okCount=0,bofCount=0,badCount=0;
+
+    const COMBO_START=3000, COMBO_KEEP=8000;
+    let lastAnsTime=null, comboActive=false, comboLen=0, comboCount=0, comboHideTO=null;
+
+    // Résultat précédent (affiché à côté du prochain mot) + auto-hide 2s
+    let lastResult=null; // 'ok' | 'bof' | 'bad' | null
+    let prevBadgeTO=null;
+
+    // ===== Lexique selon thèmes cochés =====
+    function renderLexique(filter=''){
+      const lex = $('#lexique');
+      const f = filter.trim().toLowerCase();
+      const pairs = buildPairsFromSelectedThemes();
+      const rows = pairs.map(p=>{
+        const left=p.FR, right=p.EN; let line=`• <b>${left}</b> = ${right}`;
+        if(f){
+          const re=new RegExp(f.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i');
+          if(re.test(left)||re.test(right)){
+            line=line.replace(re, m=>`<span class="hl">${m}</span>`);
+          }
+        }
+        return line;
+      });
+      lex.innerHTML = rows.join('\n') || '<span class="muted">Aucun terme (sélectionne au moins un thème)</span>';
+    }
+
+    // Badge résultat précédent (auto-disparition après 2s)
+    function setPrevBadge(kind){
+      const el = $('#prevBadge');
+      el.className = 'badge-status';
+      clearTimeout(prevBadgeTO);
+      if(!kind){ el.style.display='none'; return; }
+      el.style.display='inline-block';
+      if(kind==='ok'){ el.textContent='OK'; el.classList.add('badge-ok'); }
+      else if(kind==='bof'){ el.textContent='BOF'; el.classList.add('badge-bof'); }
+      else { el.textContent='FAUX'; el.classList.add('badge-bad'); }
+      // Auto-hide after 2s
+      prevBadgeTO = setTimeout(()=>{ el.style.display='none'; }, 2000);
+    }
+
+    function nextQ(){
+      // Affiche le badge du résultat PRÉCÉDENT à côté du prochain mot (puis auto-hide)
+      setPrevBadge(lastResult);
+
+      if(idx>=order.length){ finishGame(); return; }
+      currentPair = order[idx++]; // on mémorise la paire posée
+
+      if(direction==='ENFR'){
+        currentQ=currentPair.EN;
+        currentAnswers=currentPair.FR.split('|').map(s=>s.trim());
+      } else {
+        currentQ=currentPair.FR;
+        currentAnswers=currentPair.EN.split('|').map(s=>s.trim());
+      }
+
+      $('#question').textContent=currentQ;
+      if(mode==='TIMER') startTick();
+    }
+
+    function checkAnswer(raw){
+      const u=normalize(raw);
+      const answersNorm=currentAnswers.map(a=>normalize(a));
+      if(u && answersNorm.includes(u)) return {kind:'ok',pts:1}
+      for(const an of answersNorm){
+        const d=levenshtein(u,an);
+        if(d<=maxTypos) return {kind:'bof',pts:0.5}
+      }
+      return {kind:'bad',pts:0}
+    }
+
+    function updateStats(){
+      const pct=asked?Math.round(points/asked*1000)/10:0;
+      const note=asked?Math.round(points/asked*200)/10:0;
+      const progQ = order.length ? ` | ${idx}/${order.length}` : '';
+
+      const selPairs = buildPairsFromSelectedThemes();
+      const mastery = countMastery(selPairs); // {done,total,left}
+      const masteryTxt = ` | Maîtrisé: ${mastery.done}/${mastery.total} | Reste: ${mastery.left}`;
+
+      $('#stats').textContent=
+        `Questions: ${asked} | Points: ${points} | Réussite: ${pct}% | Note/20: ${note}${progQ}${masteryTxt}`;
+    }
+
+    function appendLog(kind, line){
+      const log=$('#log');
+      const p=document.createElement('div');
+      p.textContent=line;
+      p.style.margin='2px 0';
+      p.style.color = kind==='ok' ? '#22c55e' : (kind==='bof' ? '#fbbf24' : '#ef4444');
+      log.appendChild(p);
+      log.scrollTop=log.scrollHeight;
+      // Miroir en plein écran
+      const logFS = $('#logFS');
+      if(logFS){
+        const pf = p.cloneNode(true);
+        logFS.appendChild(pf);
+        logFS.scrollTop = logFS.scrollHeight;
+      }
+    }
+
+    // ===== Classement (sans durée ni horodatage) =====
+    function getEntries(){ try{ return JSON.parse(localStorage.getItem('score_Anglais')||'[]') }catch(e){ return [] } }
+    function setEntries(arr){ localStorage.setItem('score_Anglais', JSON.stringify(arr)); }
+    let leaderboardSort = 'note';
+    function renderLeaderboard(){
+      let entries=getEntries();
+      if(entries.length===0){
+        $('#leaderboard').innerHTML='<div class="muted">Aucun score enregistré pour le moment.</div>';
+        $('#leaderboardFS')&&($('#leaderboardFS').innerHTML='');
+        return;
+      }
+      // Tri selon sélection
+      if(leaderboardSort==='pct') entries.sort((a,b)=> b.pct - a.pct || a.durMs - b.durMs );
+      else if(leaderboardSort==='note') entries.sort((a,b)=> b.note - a.note || a.durMs - b.durMs);
+      else if(leaderboardSort==='date') entries.sort((a,b)=> (b.ts||'').localeCompare(a.ts||''));
+      // Ne garder que les 15 premiers à l'affichage
+      entries = entries.slice(0,15);
+      let html='<table><thead><tr><th>Joueur</th><th>%</th><th>Note</th><th>Réponses</th><th>Combos</th><th>Horodatage</th></tr></thead><tbody>';
+      for(const e of entries){
+        const ts = (e.ts) ? e.ts : (e.date && e.hour ? `${e.date},${String(e.hour).replace('h',':').padEnd(5,'0').slice(0,5)}` : '');
+        html+=`<tr>
+          <td>${e.player||'—'}</td>
+          <td>${(e.pct??0).toFixed(1)}</td>
+          <td>${(e.note??0).toFixed(1)}/20</td>
+          <td><span style="color:#22c55e">${e.ok||0}</span>/<span style="color:#fbbf24">${e.bof||0}</span>/<span style="color:#ef4444">${e.bad||0}</span></td>
+          <td>🔥 ${e.combos||0}</td>
+          <td>${ts}</td>
+        </tr>`;
+      }
+      html+='</tbody></table>';
+      $('#leaderboard').innerHTML=html;
+      // Copie dans le panneau FS si présent
+      if($('#leaderboardFS')){ $('#leaderboardFS').innerHTML = html; }
+    }
+
+
+    // Horodatage utilitaires
+    function two(n){ return String(n).padStart(2,'0'); }
+    function makeTimestamp(d){
+      const dd=two(d.getDate()), mm=two(d.getMonth()+1), yy=two(d.getFullYear()%100);
+      const HH=two(d.getHours()), MM=two(d.getMinutes());
+      return `${dd}/${mm}/${yy},${HH}:${MM}`;
+    }
+
+function saveScore(){
+  // 1. Calcul des stats de la partie en cours
+  const pct = asked ? Math.round(points/asked*1000)/10 : 0;   // ex: 72.9 (% de réussite)
+  const note = asked ? Math.round(points/asked*200)/10 : 0;   // ex: 14.6 (sur 20)
+  const durMs = Date.now() - gameStart;
+  const dateObj = new Date();
+
+  const player = ($('#player').value || localStorage.getItem('playerName') || 'Anonyme').trim();
+  localStorage.setItem('playerName', player);
+
+  const hour = String(dateObj.getHours()).padStart(2,'0') + "h";
+  const ts = makeTimestamp(dateObj);
+
+  // 2. Construire l'objet détaillé de la partie (pour le classement interne du QCM)
+  const entry = {
+    player,
+    points,
+    pct,
+    note,
+    durMs,
+    combos: comboCount,
+    date: dateObj.toLocaleDateString('fr-FR'),
+    hour,
+    ok: okCount,
+    bof: bofCount,
+    bad: badCount,
+    ts
+  };
+
+  // 3. Charger l'historique existant, ajouter cette partie, trier, couper à 15 meilleurs
+  let list = getEntries();   // lit dans localStorage "score_Anglais"
+  list.push(entry);
+
+  list.sort((a,b)=> b.pct - a.pct || a.durMs - b.durMs); // meilleur % puis temps le plus court
+  list = list.slice(0,15);   // on garde que les 15 plus belles perfs
+  setEntries(list);          // réécrit "score_Anglais"
+  renderLeaderboard();       // rafraîchit l'affichage du tableau des scores dans la page
+
+  // 4. Fabriquer la chaîne RÉSUMÉE pour le sommaire
+  // asked = nb de questions qu'il a effectivement répondues dans cette run
+  // initialDeckSize = nb de questions au début de la session (qu'on a mémorisé au lancement)
+  const pctTxt = Math.round(pct * 10) / 10; // arrondi à 1 décimale, ex: 82.5
+  const progTxt = `${asked}/${initialDeckSize}q`; // ex: "12/40q"
+
+  const simple = `${player} ${pctTxt}%  ${progTxt}`;
+
+  // 5. Enregistrer ce résumé dans une clé séparée pour que le sommaire le lise direct
+  localStorage.setItem('vocabanglais_lastScore_v1', simple);
+}
+
+
+    function loadPlayer(){
+      const p=localStorage.getItem('playerName');
+      if(p) $('#player').value=p;
+    }
+
+    // Timer
+    function startTick(){
+      clearInterval(tRef);
+      remaining = perQuestion;
+      $('#countdown').textContent=remaining;
+      $('#countdownWrap').style.display='inline-flex';
+      tRef=setInterval(()=>{
+        remaining--;
+        $('#countdown').textContent=remaining;
+        if(remaining<=0){
+          clearInterval(tRef);
+          forcedValidate()
+        }
+      },1000)
+    }
+    function stopTick(){
+      clearInterval(tRef);
+      $('#countdownWrap').style.display='none'
+    }
+
+    // Combo
+    function showCombo(){ $('#comboLen').textContent=comboLen; $('#comboWrap').style.display='inline-flex' }
+    function hideCombo(){ $('#comboWrap').style.display='none' }
+    function endCombo(){ comboActive=false; comboLen=0; hideCombo(); clearTimeout(comboHideTO); }
+    function updateComboOnAnswer(nonEmpty){
+      const now = performance.now();
+      if(!nonEmpty){ lastAnsTime = now; return; }
+      if(lastAnsTime===null){
+        comboActive=false; comboLen=1; lastAnsTime=now; return;
+      }
+      if(!comboActive){
+        if(now - lastAnsTime <= COMBO_START){
+          comboActive=true; comboLen=2; comboCount++; showCombo();
+        } else {
+          comboLen=1;
+        }
+      } else {
+        if(now - lastAnsTime <= COMBO_KEEP){
+          comboLen++; showCombo();
+        } else {
+          comboActive=false; comboLen=1; hideCombo();
+        }
+      }
+      lastAnsTime = now;
+      clearTimeout(comboHideTO);
+      comboHideTO = setTimeout(()=>{
+        comboActive=false; comboLen=0; hideCombo();
+      }, COMBO_KEEP);
+    }
+
+    function closeLexique(){
+      $('#lexique').style.display='none';
+      $('#toggleLexique').textContent='Afficher';
+      $('#lexSearch').style.display='none'
+    }
+
+    function handleValidate(){
+      const val=$('#answer').value.trim();
+      if(!val && mode!=='TIMER') return;
+      if(mode==='TIMER') stopTick();
+
+      const res=checkAnswer(val);
+
+      asked++;
+      points+=res.pts;
+      if(res.kind==='ok') okCount++;
+      else if(res.kind==='bof') bofCount++;
+      else badCount++;
+
+      // Marquer ce mot comme maîtrisé si c'est bien répondu
+      if(res.kind==='ok' && currentPair){
+        const k = makeKey(currentPair);
+        progress[k] = 'ok';
+        saveProgress(progress);
+      }
+
+      // Mémorise le résultat pour le badge de la prochaine question
+      lastResult = res.kind;
+
+      if(res.kind==='bad'){ endCombo(); } else { updateComboOnAnswer(!!val); }
+      const flames = (comboActive && comboLen>=2) ? (' ' + '🔥'.repeat(Math.min(comboLen,5))) : '';
+      const good=currentAnswers.join(', ');
+      const tag = res.kind==='ok' ? 'OK' : (res.kind==='bof' ? 'BOF' : 'FAUX');
+      const line=`${tag}${flames} | Q:${currentQ} | R:${val||'(vide)'} | Corr:${good}`;
+      appendLog(res.kind, line);
+
+      updateStats();
+      nextQ();
+      $('#answer').value='';
+      $('#answer').focus();
+    }
+
+    function forcedValidate(){
+      // Temps écoulé => considéré FAUX pour le badge suivant
+      lastResult = 'bad';
+
+      const val='';
+      const res=checkAnswer(val);
+
+      asked++;
+      points+=res.pts;
+      badCount++;
+      endCombo();
+
+      const good=currentAnswers.join(', ');
+      const flames = (comboActive && comboLen>=2) ? (' ' + '🔥'.repeat(Math.min(comboLen,5))) : '';
+      const line=`TEMPS${flames} | Q:${currentQ} | R:(temps écoulé) | Corr:${good}`;
+      appendLog('bad', line);
+
+      updateStats();
+      nextQ();
+      $('#answer').value='';
+      $('#answer').focus();
+    }
+
+    // ==== FIN / STOP ====
+    function finishGame(){
+      if(!inGame) return;
+      if(mode==='TIMER') stopTick();
+      const durMs=Date.now()-gameStart;
+      const mm=Math.floor(durMs/60000);
+      const ss=Math.floor((durMs%60000)/1000).toString().padStart(2,'0');
+      alert(`${$('#stats').textContent}\nDurée: ${mm}:${ss}\nCombos: 🔥 ${comboCount}`);
+      saveScore();
+      $('#validate').disabled=true;
+      $('#stop').disabled=true;
+      inGame=false;
+      $('#toggleLexique').disabled=false;
+      $('#countdownWrap').style.display='none';
+      hideCombo();
+    }
+
+    // ===== UI Wiring =====
+    $('#mode').addEventListener('change',e=>{
+      mode=e.target.value;
+      document.getElementById('timerCfg').style.display = (mode==='TIMER')?'block':'none'
+    });
+
+    $('#validate').onclick=handleValidate;
+    $('#answer').addEventListener('keydown',e=>{
+      if(e.key==='Enter'){ handleValidate() }
+    });
+
+    // Dropdown Thèmes
+    const dropdown = $('#themeDropdown');
+    const themeBtn = $('#themeBtn');
+    const themeCount = $('#themeCount');
+    const themeList = $('#themeList');
+    themeBtn.addEventListener('click',()=>{ dropdown.classList.toggle('open'); });
+
+    function renderThemeCheckboxes(){
+      const ids = Object.keys(THEMES);
+      themeList.innerHTML = ids.map(id=>{
+        const checked = id.startsWith('1') ? 'checked' : '';
+        const safeId = 't_'+id.replace(/\W+/g,'_');
+        return `<div class="theme-row">
+          <input type="checkbox" class="theme-check" id="${safeId}" value="${id}" ${checked}>
+          <label for="${safeId}">${id}</label>
+        </div>`;
+      }).join('');
+      updateThemeCount();
+    }
+
+    function updateThemeCount(){
+      const n = document.querySelectorAll('.theme-check:checked').length;
+      themeCount.textContent = n ? `${n} sélection${n>1?'s':''}` : 'aucune sélection';
+    }
+
+    $('#closeTheme').addEventListener('click',()=>{
+      dropdown.classList.remove('open');
+      renderLexique($('#lexSearch').value||'');
+      updateThemeCount();
+    });
+    $('#checkAll').addEventListener('click',()=>{
+      document.querySelectorAll('.theme-check').forEach(c=>c.checked=true);
+      updateThemeCount();
+      renderLexique($('#lexSearch').value||'');
+    });
+    $('#uncheckAll').addEventListener('click',()=>{
+      document.querySelectorAll('.theme-check').forEach(c=>c.checked=false);
+      updateThemeCount();
+      renderLexique($('#lexSearch').value||'');
+    });
+
+    document.addEventListener('change', (e)=>{
+      if(e.target.classList && e.target.classList.contains('theme-check')){
+        updateThemeCount();
+      }
+    });
+
+    // Démarrer
+    $('#start').onclick=()=>{
+      const selectedPairs = buildPairsFromSelectedThemes();
+      if(selectedPairs.length===0){
+        alert('Sélectionne au moins un thème.');
+        return;
+      }
+
+      direction=$('#direction').value;
+      maxTypos=parseInt($('#maxTypos').value)||4;
+      mode=$('#mode').value;
+      perQuestion=parseInt($('#seconds').value)||10;
+
+      asked=0; points=0; idx=0;
+      okCount=0; bofCount=0; badCount=0;
+      $('#log').innerHTML='';
+      $('#feedback').textContent='';
+      comboActive=false; comboLen=0; comboCount=0; lastAnsTime=null;
+      hideCombo(); clearTimeout(comboHideTO);
+      gameStart=Date.now();
+      lastResult=null;
+      setPrevBadge(null); // pas de badge pour la toute première
+
+      // === NOUVEAU : deck filtré par progression
+      order = buildLearningDeck(selectedPairs);
+	  initialDeckSize = order.length;
+
+
+      if(order.length===0){
+        // tout appris !
+        inGame=false;
+        $('#validate').disabled=true;
+        $('#stop').disabled=true;
+        $('#toggleLexique').disabled=false;
+        alert("🔥 Tu as déjà validé toutes les questions de ces thèmes !");
+        updateStats();
+        return;
+      }
+
+      $('#validate').disabled=false;
+      $('#stop').disabled=false;
+      inGame=true;
+      $('#toggleLexique').disabled=true;
+      closeLexique();
+
+      nextQ();
+      updateStats();
+      $('#answer').focus();
+    }
+
+    $('#stop').onclick=finishGame;
+
+    $('#restart').onclick=()=>{
+      if(mode==='TIMER') stopTick();
+      saveScore();
+
+      asked=0; points=0; idx=0;
+      okCount=0; bofCount=0; badCount=0;
+      $('#log').innerHTML='';
+      $('#feedback').textContent='';
+      comboActive=false; comboLen=0; comboCount=0; lastAnsTime=null;
+      hideCombo(); clearTimeout(comboHideTO);
+      gameStart=Date.now();
+      lastResult=null;
+      setPrevBadge(null);
+
+      const selectedPairs = buildPairsFromSelectedThemes();
+      if(selectedPairs.length===0){
+        alert('Sélectionne au moins un thème.');
+        return;
+      }
+
+      // toujours deck basé sur ce qui reste à apprendre
+      order = buildLearningDeck(selectedPairs);
+
+      if(order.length===0){
+        inGame=false;
+        $('#validate').disabled=true;
+        $('#stop').disabled=true;
+        $('#toggleLexique').disabled=false;
+        alert("🔥 Tu as déjà validé toutes les questions de ces thèmes !");
+        updateStats();
+        return;
+      }
+
+      nextQ();
+      updateStats();
+      $('#validate').disabled=false;
+      $('#stop').disabled=false;
+      inGame=true;
+      $('#toggleLexique').disabled=true;
+      $('#answer').value='';
+      $('#answer').focus();
+    }
+
+    // Lexique toggle
+    let lexOpen=false;
+    $('#toggleLexique').onclick=()=>{
+      if(inGame) return;
+      lexOpen=!lexOpen;
+      $('#lexique').style.display = lexOpen? 'block':'none';
+      $('#lexSearch').style.display = lexOpen? 'block':'none';
+      $('#toggleLexique').textContent = lexOpen? 'Masquer':'Afficher';
+      if(lexOpen){ $('#lexSearch').focus(); }
+      renderLexique($('#lexSearch').value||'');
+    }
+    $('#lexSearch').addEventListener('input', (e)=>{
+      renderLexique(e.target.value)
+    });
+
+    // ======== Plein écran & anti-veille ========
+    const fsToggle = document.getElementById('fsToggle');
+    const fsSideBtn = document.getElementById('fsSide');
+    const fsBoardBtn = document.getElementById('fsBoard');
+    const sidePanel = document.querySelector('.side');
+    const boardPanel = document.getElementById('boardPanel');
+
+    let wakeLock = null;
+
+    async function requestWakeLock(){
+      try{
+        if('wakeLock' in navigator){
+          wakeLock = await navigator.wakeLock.request('screen');
+          wakeLock.addEventListener?.('release', ()=>{ wakeLock=null; });
+        }
+      }catch(e){ /* silencieux */ }
+    }
+    async function releaseWakeLock(){
+      try{ await wakeLock?.release(); }catch(e){}
+      wakeLock = null;
+    }
+
+    async function enterFullscreen(){
+      try{
+        if (document.documentElement.requestFullscreen) {
+          await document.documentElement.requestFullscreen();
+          try{ await screen.orientation.lock('portrait'); }catch(_){ }
+        }
+      }catch(_){ }
+      document.body.classList.add('fs');
+      fsSideBtn.style.display = 'inline-block';
+      await requestWakeLock();
+    }
+
+    async function exitFullscreen(){
+      try{
+        if (document.fullscreenElement) await document.exitFullscreen();
+      }catch(_){ }
+      document.body.classList.remove('fs');
+      fsSideBtn.style.display = 'none';
+      sidePanel.classList.remove('show');
+      await releaseWakeLock();
+    }
+
+    fsToggle.addEventListener('click', async ()=>{
+      const isFs = document.body.classList.contains('fs');
+      if(!isFs) await enterFullscreen(); else await exitFullscreen();
+      const inFs = document.body.classList.contains('fs');
+      fsToggle.textContent = inFs ? 'Quitter plein écran' : 'Plein écran';
+      fsSideBtn.style.display = inFs ? 'inline-block' : 'none';
+      fsBoardBtn.style.display = inFs ? 'inline-block' : 'none';
+    });
+
+    fsSideBtn.addEventListener('click', ()=>{
+      if (!document.body.classList.contains('fs')) return;
+      sidePanel.classList.toggle('show');
+    });
+    fsBoardBtn.addEventListener('click', ()=>{
+      if (!document.body.classList.contains('fs')) return;
+      boardPanel.classList.toggle('show');
+    });
+
+    document.addEventListener('visibilitychange', async ()=>{
+      if(document.visibilityState === 'visible' && document.body.classList.contains('fs')){
+        await requestWakeLock();
+      }
+    });
+
+    document.addEventListener('fullscreenchange', ()=>{
+      if(!document.fullscreenElement && document.body.classList.contains('fs')){
+        exitFullscreen();
+        fsToggle.textContent = 'Plein écran';
+        fsSideBtn.style.display = 'none';
+        fsBoardBtn.style.display = 'none';
+      }
+    });
+
+    // Boot
+    document.getElementById('timerCfg').style.display='none';
+    renderThemeCheckboxes();
+    renderLexique('');
+    renderLeaderboard();
+    // Wire sorting buttons
+    const wireSort = (id, key)=>{
+      const el=document.getElementById(id);
+      if(!el) return;
+      el.onclick=()=>{
+        leaderboardSort=key;
+        renderLeaderboard();
+      }
+    };
+    wireSort('lbSortNote','note');
+    wireSort('lbSortDate','date');
+    wireSort('lbSortNoteFS','note');
+    wireSort('lbSortDateFS','date');
+
+    loadPlayer();
+    // Enforce max 10 chars on first name
+    document.getElementById('player').addEventListener('input', (e)=>{
+      if(e.target.value.length>10) e.target.value = e.target.value.slice(0,10);
+    });
+
+    // Ferme le menu si clic dehors
+    document.addEventListener('click',(e)=>{
+      const dropdown = $('#themeDropdown');
+      if(dropdown && !dropdown.contains(e.target)) dropdown.classList.remove('open');
+    });
+  </script>
+</body>
+</html>
