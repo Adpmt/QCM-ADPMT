@@ -219,7 +219,7 @@ const LS_SNAPSHOT='ata313458_snapshot_v1';
 // ====== État
 let running=false, paused=false, i=0, score=0;
 let questionOrder=[], filteredQuestions=[];
-let timeLeft=0, tickHandle=null, mode='TRAIN', perQ=10;
+let timeLeft=0, tickHandle=null, mode='TRAIN', perQ=15;
 let answersLog=[];
 
 // ====== DOM
@@ -433,7 +433,7 @@ function resetState(){
 }
 function startGame(fromSnapshot=false){
   mode = 'TRAIN';
-  perQ = 10; // 10 secondes fixes par question	
+  perQ = 15; // 10 secondes fixes par question	
   if(!fromSnapshot) buildFilteredQuestions();
   running=true; paused=false; i=0; score=0; answersLog=[];
   renderQuestion();
