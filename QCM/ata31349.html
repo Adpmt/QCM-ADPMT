@@ -229,30 +229,30 @@ const pseudoInput=$('#pseudoInput'); pseudoInput.value=localStorage.getItem(LS_P
 pseudoInput.addEventListener('change',()=>localStorage.setItem(LS_PSEUDO,pseudoInput.value.trim()));
 
 // ====== Questions (exemple) — remplace/complète par ta liste complète si besoin
-  let QUESTIONS = [
+ let QUESTIONS = [
   { "q": "À quoi sert le MCDU (Multipurpose Control Display Unit) ?", 
-    "choices": ["À gérer les systèmes de navigation et de maintenance", "À contrôler les volets hypersustentateurs", "À mesurer la vitesse air", "À activer le pilote automatique"], 
-    "answer": 3 },
+    "choices": ["À contrôler les volets hypersustentateurs", "À mesurer la vitesse air", "À gérer les systèmes de navigation et de maintenance", "À activer le pilote automatique"], 
+    "answer": 2 },
 
   { "q": "Où sont installés les MCDU principaux sur un avion de ligne ?", 
-    "choices": ["Sur le plafond du cockpit", "Sur le pedestal entre les deux pilotes", "Sur les manches latéraux", "Sur la planche de bord centrale"], 
+    "choices": ["Sur le pedestal entre les deux pilotes", "Sur le plafond du cockpit", "Sur les manches latéraux", "Sur la planche de bord centrale"], 
     "answer": 0 },
 
   { "q": "Combien de MCDU peuvent équiper un A330 ?", 
     "choices": ["Un seul", "Deux", "Trois", "Quatre"], 
-    "answer": 3 },
+    "answer": 2 },
 
   { "q": "Quelle est la fonction principale du CMS (Centralized Maintenance System) ?", 
-    "choices": ["Assurer la maintenance centralisée et le suivi des pannes", "Contrôler les communications radio", "Gérer la cabine passagers", "Réguler la pression cabine"], 
-    "answer": 1 },
-
-  { "q": "Que permet le MCDU en position maintenance ?", 
-    "choices": ["Lancer des tests intégrés", "Modifier le plan de vol", "Réinitialiser le pilote automatique", "Régler les températures cabine"], 
+    "choices": ["Contrôler les communications radio", "Gérer la cabine passagers", "Réguler la pression cabine", "Assurer la maintenance centralisée et le suivi des pannes"], 
     "answer": 3 },
 
-  { "q": "Le système ARCDU est principalement destiné à :", 
-    "choices": ["La gestion radio et audio", "La commande des moteurs", "La mesure des paramètres de vol", "L’analyse de la vitesse Mach"], 
+  { "q": "Que permet le MCDU en position maintenance ?", 
+    "choices": ["Modifier le plan de vol", "Lancer des tests intégrés", "Réinitialiser le pilote automatique", "Régler les températures cabine"], 
     "answer": 1 },
+
+  { "q": "Le système ARCDU est principalement destiné à :", 
+    "choices": ["La commande des moteurs", "La mesure des paramètres de vol", "L’analyse de la vitesse Mach", "La gestion radio et audio"], 
+    "answer": 3 },
 
   { "q": "Combien d’unités ARCDU équipe un Dash 8 Q400 ?", 
     "choices": ["Une", "Deux", "Trois", "Aucune"], 
@@ -260,56 +260,57 @@ pseudoInput.addEventListener('change',()=>localStorage.setItem(LS_PSEUDO,pseudoI
 
   { "q": "Le RMU (Radio Management Unit) équipe principalement :", 
     "choices": ["Le CL-415", "Le A330", "Le Rafale", "Le Dash 8 Q400"], 
-    "answer": 3 },
+    "answer": 0 },
 
   { "q": "Que permet de faire le RMU ?", 
-    "choices": ["Contrôler les communications et la navigation radio", "Ajuster les paramètres moteurs", "Modifier les paramètres de vol automatiques", "Régler les systèmes hydrauliques"], 
+    "choices": ["Ajuster les paramètres moteurs", "Modifier les paramètres de vol automatiques", "Contrôler les communications et la navigation radio", "Régler les systèmes hydrauliques"], 
     "answer": 2 },
 
   { "q": "Que contrôle le bouton TUNE sur le RMU ?", 
-    "choices": ["L’ajustement des fréquences radio", "Le réglage de la luminosité", "Le calage altimétrique", "L’activation du pilote automatique"], 
-    "answer": 0 },
+    "choices": ["Le réglage de la luminosité", "Le calage altimétrique", "L’activation du pilote automatique", "L’ajustement des fréquences radio"], 
+    "answer": 3 },
 
   { "q": "Les enregistreurs de vol sont aussi appelés :", 
-    "choices": ["Boîtes noires", "Modules d’alerte", "Boîtes de contrôle", "Modules d’urgence"], 
-    "answer": 0 },
+    "choices": ["Modules d’alerte", "Boîtes de contrôle", "Boîtes noires", "Modules d’urgence"], 
+    "answer": 2 },
 
   { "q": "Quels sont les deux principaux types d’enregistreurs de vol ?", 
-    "choices": ["FDR et CVR", "ADC et AHRS", "TCAS et GPWS", "CMS et FWC"], 
-    "answer": 3 },
+    "choices": ["ADC et AHRS", "FDR et CVR", "TCAS et GPWS", "CMS et FWC"], 
+    "answer": 1 },
 
   { "q": "Le FDR enregistre :", 
     "choices": ["Les paramètres de vol", "Les conversations radio", "Les alarmes sonores uniquement", "Les communications passagers"], 
-    "answer": 1 },
+    "answer": 0 },
 
   { "q": "Le CVR enregistre :", 
-    "choices": ["Les conversations et alarmes sonores", "Les paramètres moteurs", "Les signaux radar", "Les vitesses verticales"], 
-    "answer": 1 },
+    "choices": ["Les paramètres moteurs", "Les signaux radar", "Les vitesses verticales", "Les conversations et alarmes sonores"], 
+    "answer": 3 },
 
   { "q": "Quelle est la température que doit supporter un enregistreur après un accident ?", 
-    "choices": ["800°C pendant 30 minutes", "1100°C pendant 1 heure", "950°C pendant 10 minutes", "500°C pendant 2 heures"], 
-    "answer": 3 },
+    "choices": ["800°C pendant 30 minutes", "950°C pendant 10 minutes", "1100°C pendant 1 heure", "500°C pendant 2 heures"], 
+    "answer": 2 },
 
   { "q": "Combien de Newtons d’écrasement un enregistreur doit-il résister ?", 
-    "choices": ["5000 N", "12500 N", "22500 N", "30000 N"], 
-    "answer": 3 },
+    "choices": ["5000 N", "22500 N", "12500 N", "30000 N"], 
+    "answer": 1 },
 
   { "q": "À partir de quelle masse un avion doit-il obligatoirement être équipé d’un FDR ?", 
     "choices": ["2500 kg", "5700 kg", "10000 kg", "15000 kg"], 
     "answer": 1 },
 
   { "q": "Quand débute l’enregistrement des paramètres de vol ?", 
-    "choices": ["À la mise en route d’un moteur", "Lors du décollage", "À l’atteinte de 1000 ft", "Dès l’allumage batterie"], 
+    "choices": ["Lors du décollage", "À l’atteinte de 1000 ft", "À la mise en route d’un moteur", "Dès l’allumage batterie"], 
     "answer": 2 },
 
   { "q": "Que permet le dispositif EVENT sur un enregistreur ?", 
-    "choices": ["Placer un repère sur l’enregistrement", "Effacer un défaut mineur", "Couper le son d’alarme", "Activer un test de maintenance"], 
-    "answer": 0 },
+    "choices": [ "Effacer un défaut mineur", "Couper le son d’alarme", "Activer un test de maintenance" , "Placer un repère sur l’enregistrement"], 
+    "answer": 3 },
 
   { "q": "Que signifie CVR ?", 
-    "choices": ["Cockpit Voice Recorder", "Central Voltage Regulator", "Command Visual Recorder", "Control Vibration Receiver"], 
-    "answer": 2 }
-]
+    "choices": ["Central Voltage Regulator", "Cockpit Voice Recorder", "Command Visual Recorder", "Control Vibration Receiver"], 
+    "answer": 1 }
+];
+
 ;
 // 👉 Tu peux coller ici ta grosse liste complète : le code fonctionne pareil.
 
