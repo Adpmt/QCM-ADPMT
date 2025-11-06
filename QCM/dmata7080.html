@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Th GTR & GTP Groupe Turbo Réacteur / Propulseur</title>
+<title>Dm ATA 70 à 80</title>
 <style>
 :root{
   --bg:#0f172a;
@@ -119,7 +119,7 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
 <body>
   <div class="card main">
     <div class="row" style="justify-content:space-between">
-      <h1>✈️ Th GTR & GTP Groupe Turbo Réacteur / Propulseur</h1>
+      <h1>✈️ Dm ATA 70 à 80</h1>
       <button id="themeToggle" class="btn-gray" title="Changer de thème">🌙/☀️</button>
     </div>
 
@@ -212,9 +212,9 @@ $('#themeToggle').onclick=()=>{
 };
 
 // ====== Storage keys
-const LS_SCORES='GTR_&_GTP_scores_v2';
-const LS_PSEUDO='GTR_&_GTP_pseudo_v2';
-const LS_SNAPSHOT='GTR_&_GTP_snapshot_v1';
+const LS_SCORES='dmata7080_scores_v2';
+const LS_PSEUDO='dmata7080_pseudo_v2';
+const LS_SNAPSHOT='dmata7080_snapshot_v1';
 
 // ====== État
 let running=false, paused=false, i=0, score=0;
@@ -230,46 +230,65 @@ pseudoInput.addEventListener('change',()=>localStorage.setItem(LS_PSEUDO,pseudoI
 
 // ====== Questions (exemple) — remplace/complète par ta liste complète si besoin
 let QUESTIONS = [
-  { "q": "Le sigle GTR signifie :", "choices": ["Groupe Turbo Réacteur", "Groupe Thermique Réactif", "Groupe Turbo Refroidi", "Groupe Turbo Rotor"], "answer": 0 },
-  { "q": "Le premier brevet d’un moteur à réaction a été déposé en :", "choices": ["1921", "1863", "1937", "1949"], "answer": 1 },
-  { "q": "Le premier avion de ligne à réaction fut le :", "choices": ["Boeing 707", "Caravelle", "DH106 Comet", "Meteor RAF"], "answer": 2 },
-  { "q": "Le principe d’action-réaction est décrit dans :", "choices": ["Le cycle de Brayton", "Le principe de Venturi", "La loi de Newton", "La loi de Bernoulli"], "answer": 2 },
-  { "q": "La masse volumique d’un fluide est :", "choices": ["ρ = M / V", "ρ = V / M", "ρ = M × V", "ρ = D × t"], "answer": 0 },
-  { "q": "Le débit massique d’un fluide se calcule par :", "choices": ["Q = ρ + V", "Q = ρ / S × V", "Q = S / V", "Q = ρ × S × V"], "answer": 3 },
-  { "q": "Selon le principe de Bernoulli, si la vitesse augmente :", "choices": ["La pression diminue", "La pression augmente", "Le débit diminue", "La densité augmente"], "answer": 0 },
-  { "q": "Dans un réacteur, le compresseur sert à :", "choices": ["Évacuer les gaz", "Élever la pression de l’air", "Ralentir l’air", "Refroidir l’air"], "answer": 1 },
-  { "q": "La chambre de combustion se situe entre :", "choices": ["La turbine et la soufflante", "Le fan et la tuyère", "Le compresseur HP et la turbine HP", "La tuyère et le réducteur"], "answer": 2 },
-  { "q": "La turbine transforme :", "choices": ["L’énergie mécanique en chaleur", "L’énergie électrique en mouvement", "La pression en température", "L’énergie thermique en énergie mécanique"], "answer": 3 },
-  { "q": "Le turboréacteur est un moteur à :", "choices": ["Combustion interne permanente", "Refroidissement par air", "Combustion intermittente", "Allumage intermittent"], "answer": 0 },
-  { "q": "Le turboréacteur double flux équipe :", "choices": ["Les hélicoptères", "Les planeurs", "Les avions de ligne", "Les avions de chasse"], "answer": 2 },
-  { "q": "Le flux primaire d’un turbofan est :", "choices": ["L’air contournant le réacteur", "L’air chaud traversant le générateur de gaz", "L’air expulsé du fan", "L’air froid extérieur"], "answer": 1 },
-  { "q": "Le flux secondaire est aussi appelé :", "choices": ["Flux primaire", "Flux froid", "Flux supersonique", "Flux chaud"], "answer": 1 },
-  { "q": "Le compresseur centrifuge est surtout utilisé sur :", "choices": ["Les avions de ligne", "Les hélicoptères", "Les chasseurs à postcombustion", "Les drones"], "answer": 1 },
-  { "q": "Le compresseur axial :", "choices": ["Sert uniquement au démarrage", "Est plus court mais plus large", "Accélère et dévie l’air dans l’axe du moteur", "Utilise un flux radial"], "answer": 2 },
-  { "q": "Le rotor d’une turbine :", "choices": ["Est fixe", "Refroidit la tuyère", "Transforme la vitesse en pression", "Tourne et extrait de l’énergie des gaz"], "answer": 3 },
-  { "q": "Le stator d’une turbine :", "choices": ["Ralentit les gaz", "Accélère les gaz et les dévie", "Tourne avec le rotor", "Est lié à la soufflante"], "answer": 1 },
-  { "q": "La tuyère est en général :", "choices": ["Convergente", "Plate", "Convergente-divergente", "Circulaire uniquement"], "answer": 2 },
-  { "q": "Le boîtier d’accessoires entraîne :", "choices": ["Le système hydraulique uniquement", "La tuyère", "La soufflante", "Les pompes et générateurs"], "answer": 3 },
-  { "q": "Le turbopropulseur transforme :", "choices": ["L’énergie mécanique en énergie thermique", "L’énergie thermique en énergie mécanique pour entraîner une hélice", "L’énergie électrique en poussée", "La pression en chaleur"], "answer": 1 },
-  { "q": "La poussée résiduelle d’un turbopropulseur est environ de :", "choices": ["20 %", "5 %", "30 %", "10 %"], "answer": 3 },
-  { "q": "Le turbopropulseur à turbine liée :", "choices": ["Utilise deux turbines libres", "A une hélice indépendante", "Utilise le même arbre pour le compresseur et l’hélice", "N’a pas de réducteur"], "answer": 2 },
-  { "q": "Le principal inconvénient d’un turbopropulseur à turbine liée est :", "choices": ["Son bruit", "La régulation compliquée de l’hélice", "Son rendement", "Sa taille"], "answer": 1 },
-  { "q": "Le turbopropulseur à turbine libre :", "choices": ["Est réservé aux drones", "A une turbine de puissance indépendante", "N’a pas de chambre de combustion", "Possède un arbre commun"], "answer": 1 },
-  { "q": "Le rôle du réducteur est de :", "choices": ["Réduire la vitesse de rotation de l’hélice", "Accélérer la rotation de l’hélice", "Augmenter la température des gaz", "Diminuer la poussée"], "answer": 0 },
-  { "q": "Le turbopropulseur PT6 est :", "choices": ["À postcombustion", "À turbine liée", "À turbine libre inversée", "À double flux"], "answer": 2 },
-  { "q": "Le réducteur concentrique :", "choices": ["Est aligné avec l’arbre moteur", "Réduit la longueur du moteur", "N’entraîne pas l’hélice", "Est décalé sur le côté"], "answer": 0 },
-  { "q": "La chambre de combustion inversée :", "choices": ["Augmente la compression", "Réduit l’encombrement du moteur", "Allonge le moteur", "Diminue le débit d’air"], "answer": 1 },
-  { "q": "Le turbopropulseur TP400-D6 équipe :", "choices": ["Le Mirage 2000", "Le Falcon 900", "L’Airbus A400M", "Le Boeing 747"], "answer": 2 },
-  { "q": "Le cycle de Brayton correspond à :", "choices": ["Le fonctionnement d’une turbine à gaz", "Un moteur à pistons", "Un compresseur centrifuge", "Un cycle fermé hydraulique"], "answer": 0 },
-  { "q": "Le débit volumique se calcule :", "choices": ["D = M × V", "D = ρ / V", "D = V / t", "D = S / t"], "answer": 2 },
-  { "q": "Le principe de Venturi implique :", "choices": ["Une augmentation de pression dans le col", "Une dépression quand la section diminue", "Une dépression quand la vitesse diminue", "Une densité constante"], "answer": 1 },
-  { "q": "Le générateur de gaz comprend :", "choices": ["Le fan et la tuyère", "Le réducteur et la turbine de puissance", "L’arbre d’hélice et le stator", "La turbine, le compresseur et la chambre de combustion"], "answer": 3 },
-  { "q": "Les aubes de la soufflante sont aussi appelées :", "choices": ["Distributeurs", "Pales", "Lames", "Tiges"], "answer": 1 },
-  { "q": "Le flux froid d’un turbofan :", "choices": ["Passe dans le générateur de gaz", "Sert au refroidissement de la tuyère", "Est réchauffé avant la sortie", "Ne passe pas par la chambre de combustion"], "answer": 3 },
-  { "q": "Un turboréacteur simple flux est :", "choices": ["Sans compresseur", "Très silencieux", "Bruyant et utilisé pour le militaire", "Sans turbine"], "answer": 2 },
-  { "q": "Les gaz sortent des turbines vers :", "choices": ["Le réducteur", "Le fan", "La tuyère", "La soufflante"], "answer": 2 },
-  { "q": "Sur un turboréacteur double flux :", "choices": ["La turbine BP entraîne la turbine HP", "La turbine HP entraîne le compresseur HP", "Le compresseur HP entraîne la turbine BP", "Les deux turbines entraînent le fan"], "answer": 1 },
-  { "q": "La soufflante sert à :", "choices": ["Injecter le carburant", "Ralentir le flux d’air", "Évacuer les gaz", "Comprimer l’air entrant"], "answer": 3 }
+  { "q": "Le paramètre N1 correspond à :", "choices": ["La vitesse du compresseur HP", "La vitesse de rotation de l’hélice", "La vitesse du compresseur BP", "La vitesse de la turbine libre"], "answer": 2 },
+  { "q": "Le carburant Jet B est principalement utilisé :", "choices": ["En zones tempérées", "En zones très froides", "En Europe", "En Amérique du Sud"], "answer": 1 },
+  { "q": "Le rapport EPR = PT7/PT2 mesure :", "choices": ["Le rapport de température turbine", "Le rapport de pression totale sortie/entrée", "La vitesse relative du flux d’air", "Le débit carburant"], "answer": 1 },
+  { "q": "Une turbine libre signifie :", "choices": ["La turbine de puissance est séparée du générateur de gaz", "La turbine entraîne directement le compresseur", "Le compresseur est entraîné par engrenage", "L’hélice est montée directement sur l’arbre HP"], "answer": 0 },
+  { "q": "Une VSV (Variable Stator Vane) sert à :", "choices": ["Stabiliser la post-combustion", "Refroidir le flux primaire", "Modifier la poussée du fan", "Adapter le débit d’air à bas régime"], "answer": 3 },
+  { "q": "Le ratio 1:16 dans une gearbox indique :", "choices": ["Le compresseur tourne 16 fois plus lentement", "Le couple est réduit de 16 %", "L’hélice tourne 16 fois plus vite que la turbine", "La turbine fait 16 tours pour 1 tour d’hélice"], "answer": 3 },
+  { "q": "Le fuel flow est exprimé en :", "choices": ["Litres par minute", "Gallons par heure", "Kilogrammes par heure", "Grammes par seconde"], "answer": 2 },
+  { "q": "Le bouchon magnétique sert à :", "choices": ["Fermer le réservoir carburant", "Contrôler la pression d’huile", "Piéger les particules métalliques", "Mesurer la température d’huile"], "answer": 2 },
+  { "q": "Le Jet A1 se distingue du Jet A par :", "choices": ["Un indice d’octane supérieur", "Une densité plus élevée", "Une composition essence/kérosène", "Un point de congélation plus bas"], "answer": 3 },
+  { "q": "les bleeds valves servent à :", "choices": ["Éviter le pompage du compresseur à bas régime", "Augmenter la température des gaz", "Réduire la poussée maximale", "Refroidir les aubes de turbine"], "answer": 0 },
+  { "q": "La fonction principale d’un FCU (Fuel Control Unit) est :", "choices": ["Réguler le débit de carburant", "Augmenter la température du fuel", "Filtrer le carburant", "Mesurer la densité du kérosène"], "answer": 0 },
+  { "q": "L’analyse ASH (Analyse Spectrométrique des Huiles) permet de :", "choices": ["Détecter les particules métalliques usées", "Compter le nombre de bulles à l'heure (B/H)", "Tester la pression de lubrification", "Mesurer le niveau d’huile"], "answer": 0 },
+  { "q": "Un turbofan est un moteur :", "choices": ["À flux double", "À flux simple", "À turbine axial inverse", "À pistons"], "answer": 0 },
+  { "q": "La post-combustion permet :", "choices": ["De refroidir les gaz", "D’augmenter la poussée", "De réduire le bruit", "De réduire la consommation"], "answer": 1 },
+  { "q": "Un panneau acoustique sert à :", "choices": ["Refroidir les compresseurs", "Filtrer les vibrations", "Améliorer la combustion", "Atténuer le bruit moteur"], "answer": 3 },
+  { "q": "Le rapport de compression dépend principalement :", "choices": ["Du nombre d’étages de compresseur", "Du diamètre du fan", "Du débit carburant", "De la longueur du moteur"], "answer": 0 },
+  { "q": "L’ITT (Interstage Turbine Temperature) est mesurée :", "choices": ["En entrée chambre combustion", "Entre deux étages turbine", "En sortie soufflante", "En sortie turbine"], "answer": 1 },
+  { "q": "Le roulement à billes supporte mieux :", "choices": ["Les efforts axiaux", "Les chocs thermiques", "Les efforts radiaux", "Les vibrations torsionnelles"], "answer": 2 },
+  { "q": "Une ventilation humide consiste à :", "choices": ["Injecter du fuel sans allumage", "Injecter de l’eau pour refroidir", "Faire tourner le moteur à sec", "Injecter du fuel avec allumage"], "answer": 0 },
+  { "q": "La fonction d’un HPTCC (High Pressure Turbine Clearance Control) est :", "choices": ["Ajuster l’ouverture des stators", "Réguler le jeu turbine/carter", "Surveiller la température d’huile", "Contrôler la vitesse turbine HP"], "answer": 1 },
+  { "q": "La pression d’huile est maintenue grâce :", "choices": ["À une pompe mécanique", "À la post-combustion", "Au fuel control unit", "À une turbine HP"], "answer": 0 },
+  { "q": "Un GTR s’exprime en :", "choices": ["Tonnes de poussée", "En kg de Newtons", "Chevaux", "Tours/minute"], "answer": 0 },
+  { "q": "Un GTP s’exprime en :", "choices": ["Chevaux", "kg/s", "PSI", "Tonnes"], "answer": 0 },
+  { "q": "L’anti-givrage moteur agit principalement :", "choices": ["Sur la turbine HP", "Sur la lèvre d’entrée d’air", "Sur les aubes HP", "Sur le circuit d’huile"], "answer": 1 },
+  { "q": "L’OPV (Overspeed Protection Valve) protège :", "choices": ["Le moteur contre le pompage", "La turbine contre la survitesse", "Le circuit fuel contre la cavitation", "L’APU contre la surchauffe"], "answer": 1 },
+  { "q": "Une turbine liée :", "choices": ["Est montée sur la boîte d’engrenages", "Entraîne directement le compresseur", "Tourne librement sans charge", "A un arbre indépendant du compresseur"], "answer": 1 },
+  { "q": "Une trappe additive d'entrée d'air sert à :", "choices": ["Freiner l’avion", "assurer un débit d’air suffisant", "Réchauffer le compresseur", "Fermer la prise d’air"], "answer": 1 },
+  { "q": "Les fuites d’huile roulements sont évitées grâce :", "choices": ["Aux joints labyrinthe et pression d'huile", "Aux filtres magnétiques", "Aux joints labyrinthe et pression d’air", "Aux joints toriques"], "answer": 2 },
+  { "q": "L’APU est :", "choices": ["Une turbine principale", "Une unité externe au sol", "Un réservoir auxiliaire", "Une unité embarquée fournissant électricité et air"], "answer": 3 },
+  { "q": "Un GPU fournit :", "choices": ["De la puissance hydraulique", "De la pression carburant  au sol", "De l’air sous pression", "De l’électricité"], "answer": 3 },
+  { "q": "Le MEC (Main Engine Control) est :", "choices": ["Un calculateur de carburant", "Un capteur de vibration", "Une commande mécanique de puissance", "Un système de contrôle électronique"], "answer": 2 },
+  { "q": "Le PMC (Power Management Control) agit comme :", "choices": ["Un régulateur automatique de régime moteur qui maintient la poussée demandée", "Un calculateur de régulation de température turbine (ITT)", "Un contrôleur d’ouverture des aubes de stator variables (VSV)", "Un dispositif d’équilibrage de pression entre les compresseurs HP et BP"], "answer": 0 },
+  { "q": "L’EPR sert à :", "choices": ["Mesurer le rapport de pression entrée/sortie des turbines de Flamanville", "Mesurer la pression d’huile dans le carter", "Surveiller la pression interne du compresseur HP", "Mesurer le rapport de pression totale entrée/sortie moteur afin d’évaluer la poussée"], "answer": 0 },
+  { "q": "Un étage de compresseur est constitué de :", "choices": ["Deux stators", "Un stator + rotor", "Un rotor + stator", "Deux rotors"], "answer": 2 },
+  { "q": "Un étage de turbine est constitué de :", "choices": ["Deux stators", "Un stator + rotor", "Un rotor + stator", "Deux rotors"], "answer": 1 },
+  { "q": "Le fuel heater sert à :", "choices": ["Refroidir l'huile", "Réchauffer le fuel pour éviter la paraffine", "Filtrer le carburant", "Augmenter la pression fuel"], "answer": 1 },
+  { "q": "Dans le rapport EPR = PT7 / PT2, la pression PT7 est mesurée :", "choices": ["En sortie compresseur", "En entrée chambre de combustion", "En sortie turbine", "En entrée moteur"], "answer": 2 },
+  { "q": "Une tuyère convergente-divergente permet :", "choices": ["D’améliorer la lubrification", "D’augmenter la vitesse des gaz en sortie", "D’injecter le fuel", "De vaporiser les chemtrails"], "answer": 1 },
+  { "q": "La vitesse N2 correspond à :", "choices": ["L’arbre BP", "L’hélice", "L’arbre HP", "La turbine libre"], "answer": 2 },
+  { "q": "Le code ATA 73 correspond à :", "choices": ["Engine fuel & control", "Ignition", "Engine control", "Oil system"], "answer": 0 },
+  { "q": "Le ratio stœchiométrique d’un turboréacteur correspond à :", "choices": ["La proportion idéale air/carburant pour une combustion complète", "Le rapport de compression du compresseur", "Le ratio de rotation entre arbre HP et BP", "Le rapport air/fuel utilisé en post-combustion"], "answer": 0 },
+  { "q": "Un échangeur ACOC ou FCOC sert à :", "choices": ["Refroidir l’air de cabine", "Réchauffer le fuel en refroidissant l’huile moteur", "Refroidir la turbine HP", "Comprimer le carburant avant la chambre de combustion"], "answer": 1 },
+  { "q": "Un thermocouple est utilisé pour :", "choices": ["Mesurer une vitesse de rotation", "Mesurer une température grâce à la différence de potentiel entre deux métaux", "Déterminer la densité du carburant", "Détecter les fuites d’huile"], "answer": 1 },
+  { "q": "Le niveau NL d’un moteur correspond :", "choices": ["À la vitesse de rotation du fan", "À la vitesse du compresseur basse pression (Low Pressure Spool)", "À la température du flux froid", "À la pression d’huile du roulement avant"], "answer": 1 },
+  { "q": "Le niveau NH correspond :", "choices": ["À la vitesse du compresseur haute pression", "À la vitesse du fan", "À la température turbine", "Au régime du générateur de puissance"], "answer": 0 },
+  { "q": "Le niveau NP correspond :", "choices": ["À la vitesse de rotation de l’arbre d’hélice sur un turboprop", "À la vitesse du compresseur HP", "À la température des gaz", "À la poussée effective du moteur"], "answer": 0 },
+  { "q": "Le niveau NFT correspond :", "choices": ["À la vitesse de la turbine libre", "À la température du carburant", "À la pression du circuit hydraulique", "Au nombre de tours de la gearbox"], "answer": 0 },
+  { "q": "Le TGT (Turbine Gas Temperature) est :", "choices": ["La température des gaz mesurée en sortie de turbine", "La température de l’huile moteur", "La température du fuel à l’entrée du FCU", "La température d’entrée compresseur"], "answer": 0 },
+  { "q": "L’AFCU (Auto Feather Control Unit) a pour rôle :", "choices": ["Commander automatiquement la mise en drapeau de l’hélice en cas de perte de puissance", "Mesurer la poussée de chaque hélice", "Réguler la pression fuel du FCU", "Contrôler la température du circuit d’huile"], "answer": 0 },
+  { "q": "Le code ATA 70 correspond à :", "choices": ["Standard practices – moteur", "Power plant", "Air conditioning", "Electrical power"], "answer": 0 },
+  { "q": "Le code ATA 71 correspond à :", "choices": ["Power plant (groupe motopropulseur)", "Engine fuel & control", "Navigation", "Flight controls"], "answer": 0 },
+  { "q": "Le code ATA 72 correspond à :", "choices": ["Engine (moteur)", "Engine control", "Cabin equipment", "Ice & rain protection"], "answer": 0 },
+  { "q": "Le code ATA 74 correspond à :", "choices": ["Système d’allumage (Ignition)", "Engine starting", "Lights", "Doors"], "answer": 0 },
+  { "q": "Le code ATA 75 correspond à :", "choices": ["Air (prélèvements et circuits d’air)", "Bleed air system", "Landing gear", "Water & waste"], "answer": 0 },
+  { "q": "Le code ATA 76 correspond à :", "choices": ["Engine control", "Engine indicating", "Fuselage", "Hydraulic power"], "answer": 0 },
+  { "q": "Le code ATA 77 correspond à :", "choices": ["Engine indicating", "Engine control", "Fire protection", "Passenger entertainment"], "answer": 0 },
+  { "q": "Le code ATA 78 correspond à :", "choices": ["Exhaust (échappement)", "Oil system", "Flight controls", "Air conditioning"], "answer": 0 },
+  { "q": "Le code ATA 79 correspond à :", "choices": ["Oil system", "Fuel system", "Cabin pressurization", "Navigation"], "answer": 0 },
+  { "q": "Le code ATA 80 correspond à :", "choices": ["Starting (système de démarrage)", "Ignition", "Doors", "Lighting"], "answer": 0 }
 ];
 
 // 👉 Tu peux coller ici ta grosse liste complète : le code fonctionne pareil.
@@ -468,7 +487,7 @@ function recordFinalScore(){
 
   // --- BEST SCORE POUR LE SOMMAIRE ---
   // Lire l'ancien meilleur s'il existe
-  const prevSimple = localStorage.getItem('score_GTR_&_GTP_v1') || '';
+  const prevSimple = localStorage.getItem('score_dmata7080_v1') || '';
   // Extraire le pourcentage numérique de l'ancien (ex "Adrien 82.5%" -> 82.5)
   let prevPct = -1;
   const m = prevSimple.match(/([0-9]+(?:\.[0-9]+)?)%/);
@@ -478,7 +497,7 @@ function recordFinalScore(){
 
   // Si pas d'ancien ou si le pourcentage actuel est meilleur -> on remplace
   if (pct > prevPct) {
-    localStorage.setItem('score_GTR_&_GTP_v1', currentSimple);
+    localStorage.setItem('score_dmata7080_v1', currentSimple);
   }
 
   // rafraîchir affichage interne
