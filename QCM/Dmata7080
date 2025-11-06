@@ -347,4 +347,194 @@ function renderQuestion(){
 
   qEl.textContent=current.q;
   renderProgress();
-  f
+  feedbackEl.textContent='';
+  choicesEl.innerHTML='';
+
+  shuffled.forEach((item, idx)=>{
+    const b=document.createElement('button');
+    b.className='opt'; b.textContent=item.text;
+    b.addEventListener('click', ()=> onSelect(idx, b));
+    choicesEl.appendChild(b);
+  });
+
+  if(running && !paused) startTick();
+}
+function highlightGood(){
+  const cur=filteredQuestions[questionOrder[i]];
+  const good = (cur && typeof cur.shuffledAnswer==='number') ? cur.shuffledAnswer : cur.answer;
+  document.querySelectorAll('.opt').forEach((b,idx)=>{ b.disabled=true; if(idx===good) b.classList.add('correct'); });
+}
+function disableAll(){ document.querySelectorAll('.opt').forEach(b=>b.disabled=true); }
+
+// ====== Sélection / Timeout
+function onSelect(idx, btn){
+  if(!running || paused) return;
+  clearTick();
+  const curQ=filteredQuestions[questionOrder[i]];
+  const goodShuffled = (typeof curQ.shuffledAnswer==='number') ? curQ.shuffledAnswer : curQ.answer;
+  const pickedOriginal = Array.isArray(curQ.shuffledMap) ? curQ.shuffledMap[idx] : idx;
+
+  // log pour le résumé
+  answersLog[i] = {
+    index:i, q:curQ.q, choices:curQ.choices.slice(),
+    correctIndex:curQ.answer, pickedIndex:pickedOriginal,
+    correct:(idx===goodShuffled), timedOut:false
+  };
+
+  if(mode==='TRAIN'){
+    highlightGood();
+    if(idx===goodShuffled){
+      score++; scoreEl.textContent=score;
+      feedbackEl.innerHTML = `<span class="ok"><b>Bonne réponse !</b></span>`;
+      showBadge('ok');
+    }else{
+      btn.classList.add('wrong');
+      feedbackEl.innerHTML = `<span class="bad"><b>Faux.</b></span>`;
+      showBadge('bad');
+    }
+  }else{
+    disableAll(); // examen : pas de correction immédiate
+  }
+
+  setTimeout(()=>{ i++; renderQuestion(); }, 800);
+}
+function onTimeout(){
+  if(!running) return;
+  const curQ=filteredQuestions[questionOrder[i]];
+  answersLog[i] = {
+    index:i, q:curQ.q, choices:curQ.choices.slice(),
+    correctIndex:curQ.answer, pickedIndex:null, correct:false, timedOut:true
+  };
+  if(mode==='TRAIN'){
+    highlightGood();
+    feedbackEl.innerHTML = `<span class="muted"><b>Temps écoulé.</b></span>`;
+    showBadge('bad');
+  }else{
+    disableAll();
+  }
+  setTimeout(()=>{ i++; renderQuestion(); }, 800);
+}
+
+// ====== Sélection des questions
+function buildFilteredQuestions(){
+  // Utiliser TOUTES les questions disponibles
+  const arr = shuffle(QUESTIONS.map((q, idx) => ({ q, idx })));
+  filteredQuestions = arr.map(o => o.q);
+  questionOrder = shuffle([...filteredQuestions.keys()]);
+}
+
+
+// ====== Démarrer / Pause / Stop
+function resetState(){
+  running=false; paused=false; i=0; score=0; answersLog=[];
+  scoreEl.textContent='0'; clearTick(); timerEl.textContent='0';
+  progressBar.style.width='0%'; progressTxt.textContent='Question 0/0';
+  qEl.textContent='Clique sur Démarrer'; choicesEl.innerHTML=''; feedbackEl.textContent='';
+  $('#summaryCard').style.display='none';
+}
+function startGame(fromSnapshot=false){
+  mode = 'TRAIN';
+  perQ = 15; // 10 secondes fixes par question	
+  if(!fromSnapshot) buildFilteredQuestions();
+  running=true; paused=false; i=0; score=0; answersLog=[];
+  renderQuestion();
+  $('#pauseBtn').disabled=false; $('#stopBtn').disabled=false;
+  saveSnapshot();
+}
+$('#startBtn').onclick=()=>{ resetState(); startGame(false); };
+$('#pauseBtn').onclick=()=>{
+  if(!running) return;
+  paused = !paused;
+  $('#pauseBtn').textContent = paused? 'Reprendre' : 'Pause';
+  if(!paused) startTick();
+  saveSnapshot();
+};
+$('#stopBtn').onclick=()=> finishGame();
+
+// ====== Résumé + enregistrement du score
+function recordFinalScore(){
+  const name = (pseudoInput.value||'').trim() || 'Anonyme';
+  const entry = { name, score, total: filteredQuestions.length, when: nowStamp() };
+
+  // garder l'historique détaillé pour ce QCM
+  const list = loadScores();
+  list.push(entry);
+  saveScores(list);
+
+  // calcul du pourcentage actuel
+  const pct = entry.total ? (entry.score / entry.total * 100) : 0;
+  const pctTxt = Math.round(pct * 10) / 10; // ex: 82.5
+  const currentSimple = `${name} ${pctTxt}%`;
+
+  // --- BEST SCORE POUR LE SOMMAIRE ---
+  // Lire l'ancien meilleur s'il existe
+  const prevSimple = localStorage.getItem('score_GTR_&_GTP_v1') || '';
+  // Extraire le pourcentage numérique de l'ancien (ex "Adrien 82.5%" -> 82.5)
+  let prevPct = -1;
+  const m = prevSimple.match(/([0-9]+(?:\.[0-9]+)?)%/);
+  if (m) {
+    prevPct = parseFloat(m[1]);
+  }
+
+  // Si pas d'ancien ou si le pourcentage actuel est meilleur -> on remplace
+  if (pct > prevPct) {
+    localStorage.setItem('score_GTR_&_GTP_v1', currentSimple);
+  }
+
+  // rafraîchir affichage interne
+  renderScoreTable();
+  drawChart();
+}
+
+function buildSummary(){
+  const total=filteredQuestions.length;
+  let ok=0, bad=0, to=0;
+  const lines = answersLog.map((r,idx)=>{
+    const corr=r.choices[r.correctIndex];
+    const user = r.pickedIndex===null ? '(aucune/temps)' : r.choices[r.pickedIndex];
+    if(r.correct) ok++; else if(r.timedOut) to++; else bad++;
+    const cls=r.correct?'ok':'bad';
+    return `<div class="${cls}">Q${idx+1}. ${r.q}<div class="small">Ta réponse: <b>${user}</b> — Corr: <b>${corr}</b></div></div>`;
+  }).join('');
+  $('#summaryStats').innerHTML = `Score: <b>${score}</b> / ${total} &nbsp; | &nbsp; OK: <span class="ok">${ok}</span> – Faux: <span class="bad">${bad}</span> – Temps: <span class="bad">${to}</span>`;
+  $('#summaryList').innerHTML = lines || '<span class="muted">Rien à afficher</span>';
+}
+function finishGame(){
+  if(!running) return;
+  clearTick(); running=false; paused=false;
+  $('#pauseBtn').disabled=true; $('#stopBtn').disabled=true;
+
+  if(mode==='EXAM'){
+    score = answersLog.reduce((acc,r)=> acc + (r.correct?1:0), 0);
+    scoreEl.textContent=score;
+  }
+  buildSummary();
+  $('#summaryCard').style.display='block';
+  recordFinalScore();
+  localStorage.removeItem(LS_SNAPSHOT);
+}
+$('#printSummary').onclick=()=>window.print();
+$('#closeSummary').onclick=()=>$('#summaryCard').style.display='none';
+
+// ====== Snapshot (reprendre une partie)
+function saveSnapshot(){
+  if(!running) return;
+  const snap={ t:Date.now(), mode, perQ, i, score, filteredQuestions, questionOrder, answersLog };
+  localStorage.setItem(LS_SNAPSHOT, JSON.stringify(snap));
+}
+function loadSnapshot(){ try{ return JSON.parse(localStorage.getItem(LS_SNAPSHOT)||'null') }catch{ return null } }
+function applySnapshot(s){ mode=s.mode; perQ=s.perQ; i=s.i; score=s.score; filteredQuestions=s.filteredQuestions; questionOrder=s.questionOrder; answersLog=s.answersLog||[]; $('#mode').value=mode; $('#qSeconds').value=perQ; scoreEl.textContent=score; renderQuestion(); }
+(function maybeShowResume(){
+  const s=loadSnapshot(); if(!s) return;
+  const btn=$('#resumeBtn'); btn.style.display='inline-block';
+  btn.onclick=()=>{ btn.style.display='none'; running=true; paused=false; applySnapshot(s); $('#pauseBtn').disabled=false; $('#stopBtn').disabled=false; startTick(); };
+})();
+
+// ====== Wire + boot
+
+
+
+(function boot(){ progressTxt.textContent='Question 0/0'; timerEl.textContent='0'; renderScoreTable(); drawChart(); })();
+</script>
+</body>
+</html>
