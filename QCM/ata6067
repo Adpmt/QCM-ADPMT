@@ -229,86 +229,83 @@ const pseudoInput=$('#pseudoInput'); pseudoInput.value=localStorage.getItem(LS_P
 pseudoInput.addEventListener('change',()=>localStorage.setItem(LS_PSEUDO,pseudoInput.value.trim()));
 
 // ====== Questions (exemple) — remplace/complète par ta liste complète si besoin
- let QUESTIONS = [
-  { "q": "À quoi sert le MCDU (Multipurpose Control Display Unit) ?", 
-    "choices": ["À contrôler les volets hypersustentateurs", "À mesurer la vitesse air", "À gérer les systèmes de navigation et de maintenance", "À activer le pilote automatique"], 
-    "answer": 2 },
+ 
+let QUESTIONS = [
+  { "q": "Le rôle principal d’une hélice sur un avion à moteur est de :", "choices": ["Transformer une pression statique en portance utile", "Créer un couple de réaction pour stabiliser l’empennage", "Convertir la puissance mécanique en traction propulsive", "Diminuer la traînée induite par l’aile en approche"], "answer": 2 },
 
-  { "q": "Où sont installés les MCDU principaux sur un avion de ligne ?", 
-    "choices": ["Sur le pedestal entre les deux pilotes", "Sur le plafond du cockpit", "Sur les manches latéraux", "Sur la planche de bord centrale"], 
-    "answer": 0 },
+  { "q": "Le pas théorique d’une hélice correspond à :", "choices": ["La distance que l’hélice parcourrait en un tour sans glissement", "La distance réellement parcourue par l’avion en un tour d’hélice", "La variation d’incidence au bord d’attaque sur un tour", "La course axiale du moyeu entre deux positions de butée"], "answer": 0 },
 
-  { "q": "Combien de MCDU peuvent équiper un A330 ?", 
-    "choices": ["Un seul", "Deux", "Trois", "Quatre"], 
-    "answer": 2 },
+  { "q": "Le recul (slip) d’une hélice est défini comme :", "choices": ["La différence entre calage au pied et au saumon de pale", "La réduction d’EGT lors d’une mise en petit pas", "L’écart entre pas réel et pas théorique de l’hélice", "Le retard de réponse du régulateur en transitoire"], "answer": 3 },
 
-  { "q": "Quelle est la fonction principale du CMS (Centralized Maintenance System) ?", 
-    "choices": ["Contrôler les communications radio", "Gérer la cabine passagers", "Réguler la pression cabine", "Assurer la maintenance centralisée et le suivi des pannes"], 
-    "answer": 3 },
+  { "q": "Le vrillage d’une pale est nécessaire principalement pour :", "choices": ["Réduire l’érosion au bord d’attaque en atmosphère polluée", "Adapter l’incidence locale à la vitesse linéaire croissante", "Compenser le déséquilibre dynamique en bout de pale", "Augmenter le moment fléchissant sous effort centrifuge"], "answer": 1 },
 
-  { "q": "Que permet le MCDU en position maintenance ?", 
-    "choices": ["Modifier le plan de vol", "Lancer des tests intégrés", "Réinitialiser le pilote automatique", "Régler les températures cabine"], 
-    "answer": 1 },
+  { "q": "À vitesse de rotation constante, le rendement d’une hélice à pas fixe est maximal :", "choices": ["Pour une unique vitesse propre donnée de l’aéronef", "Pour toutes les vitesses si le régime est stabilisé", "Uniquement au décollage quand la traction est maximale", "Uniquement en descente lorsque le recul est nul"], "answer": 0 },
 
-  { "q": "Le système ARCDU est principalement destiné à :", 
-    "choices": ["La commande des moteurs", "La mesure des paramètres de vol", "L’analyse de la vitesse Mach", "La gestion radio et audio"], 
-    "answer": 3 },
+  { "q": "Sur une hélice à pas fixe, en montée lente, on observe généralement :", "choices": ["Un recul négatif et une augmentation du régime moteur", "Un recul nul et une tendance à la survitesse hélice", "Un recul important et un régime proche du sous-régime", "Un recul constant et une poussée indépendante du pas"], "answer": 2 },
 
-  { "q": "Combien d’unités ARCDU équipe un Dash 8 Q400 ?", 
-    "choices": ["Une", "Deux", "Trois", "Aucune"], 
-    "answer": 1 },
+  { "q": "Le calage d’une pale est l’angle formé entre :", "choices": ["La corde de la pale et le plan de rotation de l’hélice", "La corde de profil et l’écoulement relatif local", "La génératrice du moyeu et la ligne de foi fuselage", "Le bord d’attaque et l’axe du réducteur moteur"], "answer": 1 },
 
-  { "q": "Le RMU (Radio Management Unit) équipe principalement :", 
-    "choices": ["Le CL-415", "Le A330", "Le Rafale", "Le Dash 8 Q400"], 
-    "answer": 0 },
+  { "q": "Le calage de référence d’une pale d’hélice est classiquement mesuré :", "choices": ["Au rayon 50 % pour limiter l’effet de compressibilité", "Au rayon 30 % pour neutraliser le couple moteur", "Au rayon 70 % pour représenter l’incidence moyenne", "Au rayon 90 % pour maximiser la précision angulaire"], "answer": 3 },
 
-  { "q": "Que permet de faire le RMU ?", 
-    "choices": ["Ajuster les paramètres moteurs", "Modifier les paramètres de vol automatiques", "Contrôler les communications et la navigation radio", "Régler les systèmes hydrauliques"], 
-    "answer": 2 },
+  { "q": "Une hélice à pas variable permet principalement de :", "choices": ["Maintenir un régime quasi constant pour un couple donné", "Maintenir une EGT constante quelle que soit la charge", "Supprimer les variations de couple sur la boîte accessoire", "Éliminer la traînée en configuration d’approche finale"], "answer": 0 },
 
-  { "q": "Que contrôle le bouton TUNE sur le RMU ?", 
-    "choices": ["Le réglage de la luminosité", "Le calage altimétrique", "L’activation du pilote automatique", "L’ajustement des fréquences radio"], 
-    "answer": 3 },
+  { "q": "Lorsqu’on augmente le pas sur une hélice à vitesse constante, à couple moteur inchangé :", "choices": ["Le régime augmente et la traction diminue modérément", "Le régime reste constant et la traction s’ajuste à la charge", "Le régime chute et le recul devient négatif en croisière", "Le régime devient instable et la pale décroche instantanément"], "answer": 2 },
 
-  { "q": "Les enregistreurs de vol sont aussi appelés :", 
-    "choices": ["Modules d’alerte", "Boîtes de contrôle", "Boîtes noires", "Modules d’urgence"], 
-    "answer": 2 },
+  { "q": "L’angle d’incidence locale d’une pale dépend avant tout :", "choices": ["Du flux secondaire issue de la soufflante avant", "De la somme vectorielle vitesse rotation et vitesse avion", "Du gradient thermique dans le moyeu d’hélice", "Du rapport de pression total du compresseur"], "answer": 1 },
 
-  { "q": "Quels sont les deux principaux types d’enregistreurs de vol ?", 
-    "choices": ["ADC et AHRS", "FDR et CVR", "TCAS et GPWS", "CMS et FWC"], 
-    "answer": 1 },
+  { "q": "Sur paire d’hélices identiques, l’augmentation de la vitesse propre de l’avion, à régime constant, tend à :", "choices": ["Accroître le recul et réduire l’incidence effective", "Réduire le recul et accroître l’incidence effective", "Imposer un calage plus faible au bord de fuite", "Déplacer le CG de la pale vers le moyeu"], "answer": 3 },
 
-  { "q": "Le FDR enregistre :", 
-    "choices": ["Les paramètres de vol", "Les conversations radio", "Les alarmes sonores uniquement", "Les communications passagers"], 
-    "answer": 0 },
+  { "q": "Le contrôle d’angle de pale avec un rapporteur universel se fait :", "choices": ["Au repère de station défini sur l’extrados de la pale", "À proximité du saumon pour amplifier les écarts minimes", "Uniquement cône déposé et moteur en drapeau", "Au pied de pale pour s’affranchir du vrillage"], "answer": 0 },
 
-  { "q": "Le CVR enregistre :", 
-    "choices": ["Les paramètres moteurs", "Les signaux radar", "Les vitesses verticales", "Les conversations et alarmes sonores"], 
-    "answer": 3 },
+  { "q": "Parmi ces affirmations, la plus correcte sur l’hélice et l’aile est :", "choices": ["L’hélice ne génère pas de portance et donc pas de traînée", "Une pale se comporte comme une aile de profil tordu", "Le bord de fuite d’une pale est symétrique par conception", "Le vent relatif d’une pale est purement axial en vol"], "answer": 1 },
 
-  { "q": "Quelle est la température que doit supporter un enregistreur après un accident ?", 
-    "choices": ["800°C pendant 30 minutes", "950°C pendant 10 minutes", "1100°C pendant 1 heure", "500°C pendant 2 heures"], 
-    "answer": 2 },
+  { "q": "À propos du pas réel d’une hélice, on peut dire qu’il est :", "choices": ["Toujours plus grand que le pas théorique en palier", "Toujours plus petit que le pas théorique en conditions réelles", "Indépendant de la vitesse de l’aéronef en air calme", "Strictement égal au pas théorique à régime stabilisé"], "answer": 2 },
 
-  { "q": "Combien de Newtons d’écrasement un enregistreur doit-il résister ?", 
-    "choices": ["5000 N", "22500 N", "12500 N", "30000 N"], 
-    "answer": 1 },
+  { "q": "Un régulateur d’hélice en mode vitesse constante agit en priorité sur :", "choices": ["Le débit carburant puis l’assiette longitudinale avion", "Le couple réducteur puis la pression d’admission", "Le pas de pale pour maintenir le régime cible", "La température huile pour réduire l’effort axial"], "answer": 3 },
 
-  { "q": "À partir de quelle masse un avion doit-il obligatoirement être équipé d’un FDR ?", 
-    "choices": ["2500 kg", "5700 kg", "10000 kg", "15000 kg"], 
-    "answer": 1 },
+  { "q": "Sur une hélice, la vitesse linéaire en bout de pale est :", "choices": ["Inférieure au pied de pale pour limiter le Mach local", "Identique sur toute la longueur par conception", "Plus élevée qu’au pied en raison du rayon plus grand", "Nulle au rayon où l’incidence est maximale"], "answer": 2 },
 
-  { "q": "Quand débute l’enregistrement des paramètres de vol ?", 
-    "choices": ["Lors du décollage", "À l’atteinte de 1000 ft", "À la mise en route d’un moteur", "Dès l’allumage batterie"], 
-    "answer": 2 },
+  { "q": "Le principal effet d’un vrillage bien dimensionné est :", "choices": ["Uniformiser l’incidence le long du rayon de pale", "Maximiser le couple réactif au décollage court", "Réduire le bruit d’interaction avec la cellule", "Augmenter la flexion de pale en croisière rapide"], "answer": 0 },
 
-  { "q": "Que permet le dispositif EVENT sur un enregistreur ?", 
-    "choices": [ "Effacer un défaut mineur", "Couper le son d’alarme", "Activer un test de maintenance" , "Placer un repère sur l’enregistrement"], 
-    "answer": 3 },
+  { "q": "En montée initiale, une mauvaise gestion du pas variable peut conduire à :", "choices": ["Un calage trop grand et un régime trop faible", "Un calage trop grand et une EGT trop basse", "Un calage trop petit et une perte de traction", "Un calage trop petit et un couple constant"], "answer": 1 },
 
-  { "q": "Que signifie CVR ?", 
-    "choices": ["Central Voltage Regulator", "Cockpit Voice Recorder", "Command Visual Recorder", "Control Vibration Receiver"], 
-    "answer": 1 }
+  { "q": "Dans une configuration de croisière économique, on recherche en général :", "choices": ["Petit pas, régime élevé, traction soutenue", "Grand pas, régime modéré, recul optimisé", "Petit pas, régime constant, recul minimal", "Grand pas, régime maximal, traction maximale"], "answer": 3 },
+
+  { "q": "La mesure du pas à 70 % de rayon est pertinente car :", "choices": ["Elle minimise l’effet des défauts d’équilibrage statique", "Elle représente au mieux l’incidence moyenne utile", "Elle neutralise l’influence du flux induit par l’aile", "Elle s’affranchit des erreurs de position du cône"], "answer": 0 },
+
+  { "q": "Le lien correct entre recul et rendement hélice est :", "choices": ["Recul élevé implique rendement accru en croisière", "Recul nul implique rendement optimal en toute phase", "Recul modéré maximise le rendement au point de design", "Recul inverse maximise la traction au décollage long"], "answer": 2 },
+
+  { "q": "Sur une hélice à pas fixe, en descente à grande vitesse, on observe typiquement :", "choices": ["Une tendance à la survitesse et un recul diminué", "Un régime constant et un recul inchangé", "Une chute de régime et un recul accru", "Une traction indépendante du Mach local"], "answer": 3 },
+
+  { "q": "Le paramètre le plus directement régulé par un CSU (constant speed unit) est :", "choices": ["La pression d’admission à l’entrée compresseur", "La vitesse de rotation hélice visée par consigne", "La température culasse en fonction de la charge", "La poussée nette corrigée des pertes d’échappement"], "answer": 1 },
+
+  { "q": "La transformation énergétique effectuée par l’hélice est décrite comme :", "choices": ["Conversion d’énergie thermique en énergie électrique", "Conversion d’énergie mécanique en énergie cinétique", "Conversion d’énergie chimique en énergie potentielle", "Conversion d’énergie magnétique en énergie de pression"], "answer": 2 },
+
+  { "q": "Pour un décollage court, la configuration hélice optimale est :", "choices": ["Petit pas afin d’obtenir un régime élevé et forte traction", "Grand pas afin d’obtenir un recul faible et peu de bruit", "Petit pas afin d’obtenir une EGT minimale en rotation", "Grand pas afin d’obtenir une vitesse propre plus tôt"], "answer": 0 },
+
+  { "q": "Le couple aérodynamique sur la pale varie notamment avec :", "choices": ["La densité air et le carré de la vitesse locale", "La pression statique et l’EGT mesurée", "La masse carburant et le débit huile", "Le régime alternateur et la charge avionique"], "answer": 1 },
+
+  { "q": "Une variation rapide de la manette de puissance sur hélice à pas variable provoque :", "choices": ["Un ajustement transitoire du pas pour tenir le régime", "Une variation d’assiette automatique de l’aéronef", "Un changement permanent du calage de référence", "Une annulation immédiate du recul mesuré"], "answer": 3 },
+
+  { "q": "Par rapport au pied de pale, le saumon est conçu avec :", "choices": ["Un calage moindre pour limiter l’incidence excessive", "Un calage accru pour augmenter la traction locale", "Un bord d’attaque plus épais pour le refroidissement", "Un bord de fuite droit pour la rigidité structurelle"], "answer": 2 },
+
+  { "q": "L’optimisation du rendement propulsif d’une hélice vise surtout à :", "choices": ["Réduire la vitesse d’éjection du flux propulsif", "Augmenter la masse d’air accélérée à faible vitesse", "Maximiser la pression totale à l’entrée de l’hélice", "Minimiser l’angle de calage au pied de pale"], "answer": 0 },
+
+  { "q": "La condition de « vitesse constante » signifie :", "choices": ["Le régime hélice est maintenu malgré les variations de charge", "La vitesse propre avion est maintenue malgré le vent réel", "Le couple moteur est constant quelle que soit la densité", "Le pas hélice ne varie pas pendant la manœuvre"], "answer": 1 },
+
+  { "q": "Concernant l’incidence de pale, on peut affirmer que :", "choices": ["Elle décroît vers le saumon pour rester proche de l’optimum", "Elle reste identique sur toute la longueur de la pale", "Elle augmente vers le pied quelle que soit la phase de vol", "Elle est indépendante de la vitesse propre de l’avion"], "answer": 3 },
+
+  { "q": "Le choix d’un grand pas en croisière permet :", "choices": ["De maintenir un régime bas et une bonne efficacité", "D’augmenter le régime pour réduire le recul", "De diminuer la traction et la stabilité latérale", "D’augmenter le bruit cabine à puissance égale"], "answer": 2 },
+
+  { "q": "Dans la plage d’utilisation normale, un bon réglage de pas variable doit :", "choices": ["Éviter la survitesse et maintenir la traction requise", "Annuler le recul pour garantir la portance maximale", "Imposer un calage fixe sur toute la phase de vol", "Forcer la pale à l’angle minimal en approche finale"], "answer": 3 },
+
+  { "q": "La définition correcte du calage mesuré est :", "choices": ["Angle corde–plan de rotation au repère de station", "Angle corde–écoulement relatif à 70 % de rayon", "Angle bord d’attaque–axe moteur au pied de pale", "Angle bord de fuite–plan de symétrie de l’aile"], "answer": 2 },
+
+  { "q": "Le vent relatif vu par une section de pale combine :", "choices": ["La vitesse avion et la vitesse de rotation locale", "La vitesse de l’écoulement secondaire seul", "La vitesse de l’air ambiant uniquement", "La vitesse induite par l’aile uniquement"], "answer": 0 },
+
+  { "q": "Sur une hélice à pas fixe, une augmentation de la vitesse propre tend à :", "choices": ["Diminuer l’incidence et réduire le couple absorbé", "Augmenter l’incidence et augmenter le couple", "Maintenir l’incidence et réduire la traction", "Inverser l’écoulement et annuler la poussée"], "answer": 3 },
+
+  { "q": "Le meilleur énoncé sur pas réel et incidence est :", "choices": ["Pas réel plus grand réduit l’incidence locale de pale", "Pas réel plus petit réduit l’incidence locale de pale", "Pas réel égal annule l’incidence sur toute la pale", "Pas réel variable impose incidence indépendante"], "answer": 1 }
 ];
 
 ;
