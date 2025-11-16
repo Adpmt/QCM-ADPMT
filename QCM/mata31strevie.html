@@ -263,25 +263,29 @@ const SCENES = {
     id: 'overview',
     index: 0,
     total: 2,
-    image: '../images/cockpit_overview.jpg',  // à adapter
+    image: '../images/cockpit_overview.jpg',
     question: "Où se trouve globalement le HSI ?",
     zones: [
       {
         id: 'main_panel',
         label: 'Main Instrument Panel',
-        x1: 465, y1: 523, x2: 1109, y2: 798,
-        next: 'main_panel_zoom',
-        isSolution: true   // ici on considère que c'est la bonne zone globale
+        x1: 465, y1: 523,
+        x2: 1109, y2: 798,
+        next: 'main_panel_zoom'   // => on zoomera vers la scène main_panel_zoom
       },
       {
         id: 'pedestal',
         label: 'Pedestal',
-        x1: 500, y1: 800, x2: 1200, y2: 1080,
-        next: null,
-        isSolution: false
+        x1: 698, y1: 703,
+        x2: 931, y2: 1178,
+        next: 'pedestal_zoom'     // ou null si tu n'as pas encore l'image zoom
       }
     ]
   },
+
+  // (on mettra ensuite main_panel_zoom ici)
+};
+
 
   main_panel_zoom: {
     id: 'main_panel_zoom',
