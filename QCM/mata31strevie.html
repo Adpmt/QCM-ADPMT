@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Test Cockpit Cliquable</title>
+<style>
+:root{
+  --bg:#0f172a;
+  --card:#1e293b;
+  --text:#e5e7eb;
+  --muted:#9ca3af;
+  --ok:#22c55e;
+  --bof:#fbbf24;
+  --bad:#ef4444;
+  --btn:#2563eb;
+  --surface:#0b1223;
+  --border:#334155;
+}
+/* ===== Palette light identique à tes QCM ===== */
+:root[data-theme="light"]{
+  --bg:#f5f7fa;
+  --card:#ffffff;
+  --text:#111827;
+  --muted:#374151;
+  --ok:#007A33;
+  --bof:#FFD200;
+  --bad:#C1121F;
+  --btn:#003366;
+  --surface:#f0f4f8;
+  --border:#cbd5e1;
+}
+
+html,body{height:100%}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:system-ui,Segoe UI,Roboto,sans-serif;
+  padding:16px;
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+  min-height:100vh;
+}
+
+/* ===== Cartes & layout identiques ===== */
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:12px;
+  box-shadow:0 8px 24px rgba(0,0,0,.15);
+  padding:16px;
+}
+.main{
+  width:100%;
+  max-width:900px;
+}
+h1{margin:0 0 10px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+select,input,button{
+  padding:8px;
+  border-radius:10px;
+  border:1px solid var(--border);
+  background:var(--surface);
+  color:var(--text)
+}
+button{
+  cursor:pointer;
+  background:var(--btn);
+  color:#fff;
+  border:none
+}
+.btn-gray{background:var(--surface);color:var(--text)}
+.pill{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:999px;
+  padding:6px 10px;
+  display:inline-flex;
+  gap:6px;
+  align-items:center
+}
+.muted{color:var(--muted);font-size:.92rem}
+.badge-status{
+  margin-left:8px;
+  padding:2px 10px;
+  border-radius:999px;
+  font-size:.9rem;
+  border:1px solid var(--border);
+  display:none
+}
+.badge-ok{color:var(--ok)}
+.badge-bad{color:var(--bad)}
+.progressbar{
+  height:8px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:999px;
+  overflow:hidden
+}
+.progressbar > div{
+  height:100%;
+  background:var(--btn);
+  width:0%
+}
+
+/* ===== Image cockpit ===== */
+#imageWrapper{
+  margin-top:10px;
+  border-radius:12px;
+  overflow:hidden;
+  background:var(--surface);
+  border:1px solid var(--border);
+}
+#cockpitImg{
+  display:block;
+  width:100%;
+  height:auto;
+  max-height:480px;
+  object-fit:contain;
+  cursor:crosshair;
+}
+
+/* Optionnel : petit marqueur de clic pour le debug */
+#clickMarker{
+  position:absolute;
+  width:14px;
+  height:14px;
+  margin:-7px 0 0 -7px;
+  border-radius:50%;
+  border:2px solid #fff;
+  box-shadow:0 0 0 2px rgba(37,99,235,.8);
+  pointer-events:none;
+  display:none;
+}
+#imageWrapperInner{
+  position:relative;
+}
+
+/* Résumé simple en bas (facultatif) */
+#summaryCard{margin-top:10px}
+</style>
+</head>
+<body>
+  <div class="card main">
+    <!-- En-tête identique -->
+    <div class="row" style="justify-content:space-between">
+      <h1>✈️ Test Cockpit Cliquable</h1>
+      <button id="themeToggle" class="btn-gray" title="Changer de thème">🌙/☀️</button>
+    </div>
+
+    <!-- Outils (pseudo / timer / score) -->
+    <div class="row">
+      <div style="min-width:160px">
+        <label class="small">Pseudo</label>
+        <input id="pseudoInput" placeholder="Ton nom" maxlength="20" />
+      </div>
+
+      <div class="pill"><span>⏱️</span><b id="timer">0</b>s</div>
+      <div class="pill">Score: <b id="score">0</b></div>
+    </div>
+
+    <!-- Carte principale : question + image -->
+    <div class="card" style="margin-top:10px">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <div style="font-size:1.2rem;font-weight:700">
+          <span id="progressTxt">Scène 0/0</span>
+          <span id="prevBadge" class="badge-status">OK</span>
+        </div>
+        <div class="progressbar" style="flex:1;max-width:360px">
+          <div id="progressBar"></div>
+        </div>
+      </div>
+
+      <p id="question" style="font-size:1.25rem;font-weight:700;margin:8px 0">
+        Clique sur Démarrer
+      </p>
+
+      <div id="imageWrapper">
+        <div id="imageWrapperInner">
+          <!-- ⚠️ remplace les chemins des images par les tiens -->
+          <img id="cockpitImg" src="" alt="Cockpit interactif">
+          <div id="clickMarker"></div>      <!-- petit point de debug -->
+          <div id="selectionMarker"></div>  <!-- cercle jaune rayé -->
+        </div>
+      </div>
+
+      <div id="feedback" class="muted" style="min-height:28px;margin-top:6px">
+        Clique sur une zone quand le test est démarré.
+      </div>
+
+      <div class="row" style="margin-top:8px">
+        <button id="startBtn">Démarrer</button>
+        <button id="validateBtn" class="btn-gray" disabled>Valider</button>
+        <button id="resetBtn" class="btn-gray">Réinitialiser</button>
+      </div>
+    </div>
+
+    <!-- Résumé très simple -->
+    <div id="summaryCard" class="card" style="margin-top:10px;display:none">
+      <h3 style="margin:0 0 6px">Résumé</h3>
+      <div id="summaryStats" class="muted"></div>
+      <div id="summaryList" class="muted" style="margin-top:8px"></div>
+    </div>
+  </div>
+
+<script>
+// ========= Helpers basiques (reprise de ta page) =========
+const $ = s => document.querySelector(s);
+const pad2 = n => String(n).padStart(2,'0');
+const nowStamp = () => {
+  const d=new Date();
+  return `${pad2(d.getDate())}/${pad2(d.getMonth()+1)}/${String(d.getFullYear()).slice(-2)} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+};
+
+// ========= Thème identique =========
+const THEME_KEY='ata_theme';
+(function applyTheme(){
+  const t = localStorage.getItem(THEME_KEY)||'dark';
+  document.documentElement.setAttribute('data-theme', t==='light'?'light':'dark');
+})();
+$('#themeToggle').onclick=()=>{
+  const cur=document.documentElement.getAttribute('data-theme')==='light'?'light':'dark';
+  const nxt=cur==='light'?'dark':'light';
+  document.documentElement.setAttribute('data-theme',nxt);
+  localStorage.setItem(THEME_KEY,nxt);
+};
+
+// ========= DOM & état =========
+const questionEl = $('#question');
+const imgEl = $('#cockpitImg');
+const feedbackEl = $('#feedback');
+const markerEl = $('#clickMarker');
+const selectionEl = $('#selectionMarker');  // cercle jaune rayé
+let selectedInstrumentId = null;    // id de l'instrument choisi (ex: "hsi", "mcdu")
+let selectedInstrumentZone = null;  // l'objet zone complet (x1,y1,x2,y2, label, etc.)
+const validateBtn = $('#validateBtn');   // 
+const progressTxt = $('#progressTxt');
+const progressBar = $('#progressBar');
+const scoreEl = $('#score');
+const timerEl = $('#timer');
+const prevBadge = $('#prevBadge');
+
+const pseudoInput = $('#pseudoInput');
+pseudoInput.value = localStorage.getItem('cockpit_pseudo') || '';
+pseudoInput.addEventListener('change', ()=>{
+  localStorage.setItem('cockpit_pseudo', pseudoInput.value.trim());
+});
+
+let running = false;
+let score = 0;
+let currentSceneId = null;
+let clickHistory = [];
+let targetInstrumentId = 'hsi';          // doit correspondre à zone.id dans la scène zoom
+let targetInstrumentLabel = 'HSI';       // juste pour l'affichage texte
+
+// ========= Définition des scènes & zones =========
+// ⚠️ Mets ici les vrais noms de tes images et les coordonnées réelles
+// Coordonnées en pixels basées sur la taille "naturelle" de l'image (naturalWidth / naturalHeight)
+const SCENES = {
+  overview: {
+    id: 'overview',
+    index: 0,
+    total: 2,
+    image: 'images/cockpit_overview.jpg',  // à adapter
+    question: "Où se trouve globalement le HSI ?",
+    zones: [
+      {
+        id: 'main_panel',
+        label: 'Main Instrument Panel',
+        x1: 400, y1: 250, x2: 1400, y2: 800,
+        next: 'main_panel_zoom',
+        isSolution: true   // ici on considère que c'est la bonne zone globale
+      },
+      {
+        id: 'pedestal',
+        label: 'Pedestal',
+        x1: 500, y1: 800, x2: 1200, y2: 1080,
+        next: null,
+        isSolution: false
+      }
+    ]
+  },
+
+  main_panel_zoom: {
+    id: 'main_panel_zoom',
+    index: 1,
+    total: 2,
+    image: 'images/main_panel_zoom.jpg', // à adapter
+    question: "Clique précisément sur le HSI",
+    zones: [
+      {
+        id: 'hsi',
+        label: 'HSI',
+        x1: 820, y1: 420, x2: 980, y2: 580,
+        next: null,
+        isSolution: true
+      },
+      {
+        id: 'pfd',
+        label: 'PFD',
+        x1: 620, y1: 420, x2: 780, y2: 580,
+        next: null,
+        isSolution: false
+      }
+    ]
+  }
+};
+
+// ========= Fonctions utilitaires =========
+function setProgress(scene){
+  if(!scene){ progressTxt.textContent='Scène 0/0'; progressBar.style.width='0%'; return; }
+  const idx = scene.index+1;
+  const total = scene.total;
+  progressTxt.textContent = `Scène ${idx}/${total}`;
+  const pct = total ? (idx/total)*100 : 0;
+  progressBar.style.width = `${pct}%`;
+}
+
+function showBadge(kind, text){
+  prevBadge.className = 'badge-status';
+  if(!kind){ prevBadge.style.display='none'; return; }
+  prevBadge.style.display='inline-block';
+  prevBadge.textContent = text || (kind === 'ok' ? 'OK' : 'FAUX');
+  prevBadge.classList.add(kind === 'ok' ? 'badge-ok' : 'badge-bad');
+  setTimeout(()=>{ prevBadge.style.display='none'; }, 1500);
+}
+
+function showMarker(x, y){
+  markerEl.style.left = x+'px';
+  markerEl.style.top = y+'px';
+  markerEl.style.display = 'block';
+  setTimeout(()=>{ markerEl.style.display='none'; }, 600);
+}
+
+function showSelectionOnZone(zone){
+  if(!zone || !imgEl.naturalWidth) return;
+
+  const rect = imgEl.getBoundingClientRect();
+  const scaleX = rect.width / imgEl.naturalWidth;
+  const scaleY = rect.height / imgEl.naturalHeight;
+
+  // centre de la zone en coordonnées image
+  const cxImg = (zone.x1 + zone.x2) / 2;
+  const cyImg = (zone.y1 + zone.y2) / 2;
+
+  // taille de la zone (pour adapter le diamètre du cercle)
+  const wImg = zone.x2 - zone.x1;
+  const hImg = zone.y2 - zone.y1;
+  const baseRadiusImg = Math.min(wImg, hImg) / 2;
+
+  // conversion en coordonnées affichage (taille réelle à l'écran)
+  const cxDisp = cxImg * scaleX;
+  const cyDisp = cyImg * scaleY;
+  const rDisp = baseRadiusImg * ((scaleX + scaleY)/2) * 0.8; // ~80% de la zone
+
+  const size = Math.max(40, Math.min(200, rDisp * 2)); // limite min/max du cercle
+
+  selectionEl.style.width = size + 'px';
+  selectionEl.style.height = size + 'px';
+
+  // centrage
+  selectionEl.style.left = cxDisp + 'px';
+  selectionEl.style.top  = cyDisp + 'px';
+  selectionEl.style.marginLeft = (-size/2) + 'px';
+  selectionEl.style.marginTop  = (-size/2) + 'px';
+
+  selectionEl.style.display = 'block';
+}
+
+function clearSelection(){
+  selectedInstrumentId = null;
+  selectedInstrumentZone = null;
+  selectionEl.style.display = 'none';
+}
+
+// Convertit le clic dans l'image visible → coordonnées dans l'image réelle
+function getImageClickCoords(event){
+  const rect = imgEl.getBoundingClientRect();
+  const scaleX = imgEl.naturalWidth / rect.width;
+  const scaleY = imgEl.naturalHeight / rect.height;
+  const x = (event.clientX - rect.left) * scaleX;
+  const y = (event.clientY - rect.top) * scaleY;
+  const xDisplay = event.clientX - rect.left;
+  const yDisplay = event.clientY - rect.top;
+  return { x, y, xDisplay, yDisplay };
+}
+
+function findZone(scene, x, y){
+  if(!scene || !scene.zones) return null;
+  return scene.zones.find(z =>
+    x >= z.x1 && x <= z.x2 &&
+    y >= z.y1 && y <= z.y2
+  );
+}
+
+// ========= Logique principale =========
+function loadScene(id){
+  const scene = SCENES[id];
+  if(!scene){
+    console.warn('Scene inconnue:', id);
+    return;
+  }
+  currentSceneId = id;
+  questionEl.textContent = scene.question;
+  imgEl.src = scene.image;
+  feedbackEl.textContent = "Clique dans l'image pour répondre.";
+  setProgress(scene);
+}
+
+function startTest(){
+  running = true;
+  score = 0;
+  clickHistory = [];
+  scoreEl.textContent = '0';
+  timerEl.textContent = '0';
+  if (validateBtn) {
+    validateBtn.disabled = true;
+  }
+  loadScene('overview');
+}
+
+
+function resetTest(){
+  running = false;
+  currentSceneId = null;
+  clickHistory = [];
+  questionEl.textContent = 'Clique sur Démarrer';
+  imgEl.src = '';
+  feedbackEl.textContent = 'Clique sur une zone quand le test est démarré.';
+  setProgress(null);
+  $('#summaryCard').style.display='none';
+  markerEl.style.display='none';
+  showBadge(null);
+  clearSelection();
+
+  if (validateBtn) {
+    validateBtn.disabled = true;
+  }
+}
+
+
+function finishTest(){
+  running = false;
+  feedbackEl.innerHTML = `<span class="muted">Test terminé.</span>`;
+  const pseudo = (pseudoInput.value || 'Anonyme').trim();
+  const totalClicks = clickHistory.length;
+  const goodClicks = clickHistory.filter(c => c.isSolution).length;
+
+  $('#summaryStats').innerHTML =
+    `Joueur : <b>${pseudo}</b> – Score : <b>${score}</b> – Clics corrects : <b>${goodClicks}</b> / ${totalClicks}`;
+
+  $('#summaryList').innerHTML = clickHistory.map((c, idx) => {
+    const cls = c.isSolution ? 'ok' : 'bad';
+    const lab = c.zoneLabel || '(hors zone)';
+    return `<div class="${cls}">#${idx+1} – ${c.scene} : ${lab} <span class="muted">(${Math.round(c.x)};${Math.round(c.y)})</span></div>`;
+  }).join('') || '<span class="muted">Aucun clic enregistré.</span>';
+
+  $('#summaryCard').style.display='block';
+}
+
+// ========= Gestion du clic sur l'image =========
+imgEl.addEventListener('click', (e)=>{
+  if(!running || !currentSceneId || !imgEl.naturalWidth) return;
+
+  const scene = SCENES[currentSceneId];
+  const { x, y, xDisplay, yDisplay } = getImageClickCoords(e);
+
+  // petit point de debug (tu peux le désactiver plus tard si tu veux)
+  showMarker(xDisplay, yDisplay);
+
+  const zone = findZone(scene, x, y);
+
+  if(!zone){
+    feedbackEl.innerHTML = `<span class="muted">En dehors des zones définies.</span>`;
+    showBadge('bad', 'Hors zone');
+    return;
+  }
+
+  // 1) Si la zone pointe vers une autre scène → navigation / zoom
+  if(zone.next){
+    clearSelection(); // si on avait déjà un instrument sélectionné, on efface
+    feedbackEl.innerHTML = `Zone : <b>${zone.label}</b><br><span class="muted">Zoom sur cette zone...</span>`;
+    showBadge('ok', 'Zoom');
+    setTimeout(()=> loadScene(zone.next), 300);
+    return;
+  }
+
+  // 2) Sinon : on considère que c'est un INSTRUMENT sélectionnable
+  selectedInstrumentId = zone.id;
+  selectedInstrumentZone = zone;
+
+  // affiche le cercle jaune rayé sur cette zone
+  showSelectionOnZone(zone);
+
+  // petit message pour guider l'utilisateur
+  feedbackEl.innerHTML = `Instrument sélectionné : <b>${zone.label}</b><br><span class="muted">Clique sur "Valider" pour confirmer ta réponse.</span>`;
+  showBadge('ok', 'Choix');
+
+  // (optionnel) si on a déjà un bouton Valider, on l'active
+  const validateBtn = document.querySelector('#validateBtn');
+  if(validateBtn){
+    validateBtn.disabled = false;
+  }
+});
+
+
+// ========= Boutons =========
+$('#startBtn').onclick = () => {
+  resetTest();
+  startTest();
+};
+$('#resetBtn').onclick = () => {
+  resetTest();
+};
+validateBtn.addEventListener('click', ()=>{
+  if (!running) return;
+
+  if (!selectedInstrumentId || !selectedInstrumentZone) {
+    feedbackEl.innerHTML = `<span class="muted">Clique d'abord sur un instrument pour le sélectionner.</span>`;
+    showBadge('bad', 'Aucun choix');
+    return;
+  }
+
+  // Comparaison avec l'instrument cible
+  if (selectedInstrumentId === targetInstrumentId) {
+    // ✅ Bonne réponse
+    score++;
+    scoreEl.textContent = score;
+    feedbackEl.innerHTML =
+      `<span class="ok"><b>Bonne réponse !</b></span><br>` +
+      `Tu as bien trouvé : <b>${selectedInstrumentZone.label}</b>`;
+    showBadge('ok', 'OK');
+  } else {
+    // ❌ Mauvaise réponse
+    feedbackEl.innerHTML =
+      `<span class="bad"><b>Mauvaise réponse.</b></span><br>` +
+      `Tu as cliqué : <b>${selectedInstrumentZone.label}</b><br>` +
+      `Réponse attendue : <b>${targetInstrumentLabel}</b>`;
+    showBadge('bad', 'FAUX');
+  }
+
+  // Une fois validé : on désactive le bouton, on pourrait ensuite passer à
+  // une autre question ou remettre la même.
+  validateBtn.disabled = true;
+  clearSelection();
+
+  // Ici tu peux soit :
+  // - lancer une nouvelle question (changer targetInstrumentId + loadScene('overview'))
+  // - soit afficher un résumé / continuer à la main
+});
+
+
+// ========= Boot =========
+(function boot(){
+  setProgress(null);
+  timerEl.textContent = '0';
+})();
+</script>
+</body>
+</html>
