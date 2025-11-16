@@ -470,6 +470,9 @@ imgEl.addEventListener('click', (e)=>{
   // petit point de debug (tu peux le désactiver plus tard si tu veux)
   showMarker(xDisplay, yDisplay);
 
+  console.log('Click image coords:', Math.round(x), Math.round(y));
+  feedbackEl.innerHTML = `Clic : <b>${Math.round(x)}</b> ; <b>${Math.round(y)}</b>`;
+
   const zone = findZone(scene, x, y);
 
   if(!zone){
