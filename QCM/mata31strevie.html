@@ -272,10 +272,10 @@ zones: [
   {
     id: 'main_panel',
     label: 'Main Instrument Panel',
-    x1: 465,
-    y1: 523,
-    x2: 1109,
-    y2: 703,          // 👈 juste avant le début du pedestal (703)
+    x1: 458,
+    y1: 553,
+    x2: 687,
+    y2: 765,          // 👈 juste avant le début du pedestal (703)
     next: 'main_panel_zoom'
   },
 
@@ -283,10 +283,10 @@ zones: [
   {
     id: 'main_panel',
     label: 'Main Instrument Panel',
-    x1: 465,
-    y1: 703,          // même hauteur que le haut du pedestal
-    x2: 698,          // limite gauche du pedestal
-    y2: 798,          // bas du main panel
+    x1: 693,
+    y1: 513,          // même hauteur que le haut du pedestal
+    x2: 901,          // limite gauche du pedestal
+    y2: 678,          // bas du main panel
     next: 'main_panel_zoom'
   },
 
@@ -294,10 +294,10 @@ zones: [
   {
     id: 'main_panel',
     label: 'Main Instrument Panel',
-    x1: 931,          // limite droite du pedestal
-    y1: 703,
-    x2: 1109,
-    y2: 798,
+    x1: 909,          // limite droite du pedestal
+    y1: 525,
+    x2: 1125,
+    y2: 788,
     next: 'main_panel_zoom'
   },
 
@@ -305,10 +305,10 @@ zones: [
   {
     id: 'pedestal',
     label: 'Pedestal',
-    x1: 698,
-    y1: 703,
-    x2: 931,
-    y2: 1178,
+    x1: 702,
+    y1: 698,
+    x2: 926,
+    y2: 1185,
     next: 'pedestal_zoom'   // ou null si tu n’as pas (encore) d’image zoom pedestal
   }
 ]
