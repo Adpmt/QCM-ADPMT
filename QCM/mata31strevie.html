@@ -461,17 +461,49 @@ function clearSelection(){
 // Convertit le clic dans l'image visible → coordonnées dans l'image réelle
 function getImageClickCoords(event){
   const rect = imgEl.getBoundingClientRect();
-  const scaleX = imgEl.naturalWidth / rect.width;
-  const scaleY = imgEl.naturalHeight / rect.height;
+  const iw = imgEl.naturalWidth;
+  const ih = imgEl.naturalHeight;
+  const rw = rect.width;
+  const rh = rect.height;
 
-  const x = (event.clientX - rect.left) * scaleX;
-  const y = (event.clientY - rect.top) * scaleY;
+  if (!iw || !ih || !rw || !rh) {
+    return { x: 0, y: 0, xDisplay: 0, yDisplay: 0 };
+  }
 
-  const xDisplay = event.clientX - rect.left;
-  const yDisplay = event.clientY - rect.top;
+  // L'image est "contain" dans le rect → on calcule l'échelle réelle
+  const scale = Math.min(rw / iw, rh / ih);
+  const displayWidth  = iw * scale;
+  const displayHeight = ih * scale;
 
-  return { x, y, xDisplay, yDisplay };
+  // Marges (barres) autour de l'image dans le rect
+  const offsetX = (rw - displayWidth)  / 2;
+  const offsetY = (rh - displayHeight) / 2;
+
+  // Coordonnées du clic dans le repère du rect
+  const px = event.clientX - rect.left;
+  const py = event.clientY - rect.top;
+
+  // Coordonnées du clic dans le repère de l'image affichée (sans les marges)
+  const pxInImg = px - offsetX;
+  const pyInImg = py - offsetY;
+
+  // Si on clique dans les marges (en dehors de l'image réelle) → on peut considérer hors zone
+  if (pxInImg < 0 || pyInImg < 0 || pxInImg > displayWidth || pyInImg > displayHeight) {
+    return { x: -1, y: -1, xDisplay: px, yDisplay: py };
+  }
+
+  // Conversion vers coordonnées "naturelles" de l'image (tes zones)
+  const x = pxInImg / scale;
+  const y = pyInImg / scale;
+
+  return {
+    x,
+    y,
+    xDisplay: px,
+    yDisplay: py
+  };
 }
+
 
 function findZone(scene, x, y){
   if(!scene || !scene.zones) return null;
@@ -552,6 +584,12 @@ imgEl.addEventListener('click', (e)=>{
 
   const scene = SCENES[currentSceneId];
   const { x, y, xDisplay, yDisplay } = getImageClickCoords(e);
+  if (x < 0 || y < 0) {
+  // clic en dehors de l'image réelle (dans les bandes/marges)
+  feedbackEl.innerHTML = `<span class="muted">Clique dans l'image, pas dans le cadre autour.</span>`;
+  return;
+}
+
 
   // petit point de debug (tu peux le désactiver plus tard si tu veux)
   showMarker(xDisplay, yDisplay);
