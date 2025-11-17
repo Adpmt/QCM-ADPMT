@@ -463,10 +463,13 @@ function getImageClickCoords(event){
   const rect = imgEl.getBoundingClientRect();
   const scaleX = imgEl.naturalWidth / rect.width;
   const scaleY = imgEl.naturalHeight / rect.height;
+
   const x = (event.clientX - rect.left) * scaleX;
   const y = (event.clientY - rect.top) * scaleY;
+
   const xDisplay = event.clientX - rect.left;
   const yDisplay = event.clientY - rect.top;
+
   return { x, y, xDisplay, yDisplay };
 }
 
