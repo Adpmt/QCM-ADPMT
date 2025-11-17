@@ -114,14 +114,31 @@ button{
   background:var(--surface);
   border:1px solid var(--border);
 }
-#cockpitImg{
-  display:block;
+
+/* Conteneur interne avec ratio fixe (16:9) */
+#imageWrapperInner{
+  position:relative;
   width:100%;
-  height:auto;
-  max-height:480px;
+  /* 16:9 → 9/16 = 0.5625 → 56.25% */
+  padding-top:56.25%;
+}
+
+/* L'image remplit le conteneur interne, avec object-fit:contain */
+#cockpitImg{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
   object-fit:contain;
   cursor:crosshair;
 }
+
+/* Le petit marker de clic et le cercle de sélection restent en position:absolute dans ce même repère */
+#clickMarker,
+#selectionMarker{
+  /* ils sont déjà en position:absolute, donc rien à changer ici */
+}
+
 
 /* Optionnel : petit marqueur de clic pour le debug */
 #clickMarker{
