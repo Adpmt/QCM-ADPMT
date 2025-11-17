@@ -211,6 +211,7 @@ button{
       <div class="row" style="margin-top:8px">
         <button id="startBtn">Démarrer</button>
         <button id="validateBtn" class="btn-gray" disabled>Valider</button>
+        <button id="backBtn" class="btn-gray" style="display:none; margin-left:8px;">Retour</button>
         <button id="resetBtn" class="btn-gray">Réinitialiser</button>
       </div>
     </div>
@@ -259,6 +260,8 @@ const progressBar = $('#progressBar');
 const scoreEl = $('#score');
 const timerEl = $('#timer');
 const prevBadge = $('#prevBadge');
+const backBtn = $('#backBtn');
+
 
 const pseudoInput = $('#pseudoInput');
 pseudoInput.value = localStorage.getItem('cockpit_pseudo') || '';
@@ -538,6 +541,13 @@ function loadScene(id){
     return;
   }
   currentSceneId = id;
+  // === Bouton Retour : visible uniquement dans les scènes zoom ===
+if (id === "overview") {
+    backBtn.style.display = "none";
+} else {
+    backBtn.style.display = "inline-block";
+}
+
   questionEl.textContent = scene.question;
   imgEl.src = scene.image;
   feedbackEl.textContent = "Clique dans l'image pour répondre.";
@@ -693,6 +703,13 @@ validateBtn.addEventListener('click', ()=>{
   // Ici tu peux soit :
   // - lancer une nouvelle question (changer targetInstrumentId + loadScene('overview'))
   // - soit afficher un résumé / continuer à la main
+});
+backBtn.addEventListener('click', () => {
+    loadScene("overview");
+    feedbackEl.textContent = "";
+    hideSelectionMarker();  // si tu as cette fonction sinon tu m’avises
+    selectedInstrumentId = null;
+    validateBtn.disabled = true;
 });
 
 
