@@ -194,7 +194,9 @@ button{
       <div class="row" style="margin-top:8px">
         <button id="startBtn">Démarrer</button>
         <button id="validateBtn" class="btn-gray" disabled>Valider</button>
+        <button id="resetBtn" class="btn-gray">Réinitialiser</button>
         <button id="homeBtn" class="btn-gray">🏠 Sommaire</button>
+
       </div>
     </div>
 
@@ -205,7 +207,6 @@ button{
       <div id="summaryList" class="muted" style="margin-top:8px"></div>
     </div>
   </div>
-  
 
 <script>
 // ========= Helpers basiques (reprise de ta page) =========
@@ -644,6 +645,10 @@ validateBtn.addEventListener('click', ()=>{
   setProgress(null);
   timerEl.textContent = '0';
 })();
+document.getElementById('homeBtn').onclick = () => {
+  window.location.href = '../index.html';
+};
+
 </script>
 </body>
 </html>
