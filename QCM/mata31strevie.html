@@ -265,22 +265,54 @@ const SCENES = {
     total: 2,
     image: '../images/cockpit_overview.jpg',
     question: "Où se trouve globalement le HSI ?",
-    zones: [
-      {
-        id: 'main_panel',
-        label: 'Main Instrument Panel',
-        x1: 465, y1: 523,
-        x2: 1109, y2: 798,
-        next: 'main_panel_zoom'   // => on zoomera vers la scène main_panel_zoom
-      },
-      {
-        id: 'pedestal',
-        label: 'Pedestal',
-        x1: 698, y1: 703,
-        x2: 931, y2: 1178,
-        next: 'pedestal_zoom'     // ou null si tu n'as pas encore l'image zoom
-      }
-    ]
+zones: [
+  // === MAIN PANEL : 3 morceaux avec le même id ===
+
+  // 1) Bande du haut (au-dessus du pedestal)
+  {
+    id: 'main_panel',
+    label: 'Main Instrument Panel',
+    x1: 465,
+    y1: 523,
+    x2: 1109,
+    y2: 703,          // 👈 juste avant le début du pedestal (703)
+    next: 'main_panel_zoom'
+  },
+
+  // 2) Bas-gauche (sous le panel, à gauche du pedestal)
+  {
+    id: 'main_panel',
+    label: 'Main Instrument Panel',
+    x1: 465,
+    y1: 703,          // même hauteur que le haut du pedestal
+    x2: 698,          // limite gauche du pedestal
+    y2: 798,          // bas du main panel
+    next: 'main_panel_zoom'
+  },
+
+  // 3) Bas-droite (sous le panel, à droite du pedestal)
+  {
+    id: 'main_panel',
+    label: 'Main Instrument Panel',
+    x1: 931,          // limite droite du pedestal
+    y1: 703,
+    x2: 1109,
+    y2: 798,
+    next: 'main_panel_zoom'
+  },
+
+  // === PEDESTAL : en un seul bloc au centre ===
+  {
+    id: 'pedestal',
+    label: 'Pedestal',
+    x1: 698,
+    y1: 703,
+    x2: 931,
+    y2: 1178,
+    next: 'pedestal_zoom'   // ou null si tu n’as pas (encore) d’image zoom pedestal
+  }
+]
+
   },
 
   // (on mettra ensuite main_panel_zoom ici)
@@ -512,8 +544,8 @@ imgEl.addEventListener('click', (e)=>{
   showSelectionOnZone(zone);
 
   // petit message pour guider l'utilisateur
-  feedbackEl.innerHTML = `Instrument sélectionné : <b>${zone.label}</b><br><span class="muted">Clique sur "Valider" pour confirmer ta réponse.</span>`;
-  showBadge('ok', 'Choix');
+  feedbackEl.innerHTML = `<span class="muted">Clique sur "Valider" pour confirmer ta réponse.</span>`; //Instrument sélectionné : <b>${zone.label}</b><br>
+  // showBadge('ok', 'Choix');
 
   // (optionnel) si on a déjà un bouton Valider, on l'active
   const validateBtn = document.querySelector('#validateBtn');
