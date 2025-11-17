@@ -195,8 +195,6 @@ button{
         <button id="startBtn">Démarrer</button>
         <button id="validateBtn" class="btn-gray" disabled>Valider</button>
         <button id="resetBtn" class="btn-gray">Réinitialiser</button>
-        <button id="homeBtn" class="btn-gray">🏠 Sommaire</button>
-
       </div>
     </div>
 
@@ -645,10 +643,6 @@ validateBtn.addEventListener('click', ()=>{
   setProgress(null);
   timerEl.textContent = '0';
 })();
-document.getElementById('homeBtn').onclick = () => {
-  window.location.href = '../index.html';
-};
-
 </script>
 </body>
 </html>
