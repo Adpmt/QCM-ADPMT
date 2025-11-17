@@ -350,6 +350,42 @@ zones: [
         isSolution: false
       }
     ]
+  },
+   // (on mettra ensuite main_panel_zoom ici)
+    pedestal_zoom: {
+    id: 'pedestal_zoom',
+    index: 1,
+    total: 2,
+    image: '../images/pedestal.jpg', // à adapter
+    question: "Clique précisément sur le HSI",
+    zones: [
+     {
+        id: 'hsi',                    // 👈 même id
+        label: 'HSI pilote',
+        x1: 678, y1: 1017,  x2: 980, y2: 1347,
+        next: null
+      },
+     {
+        id: 'hsi',                    // 👈 même id
+        label: 'HSI copilote',
+        x1: 2801, y1: 1022,  x2: 3159, y2: 1333,
+        next: null
+      },
+      {
+        id: 'pfd',
+        label: 'PFD pilote',
+        x1: 641, y1: 664, x2: 962, y2: 994,
+        next: null,
+        isSolution: false
+      },
+      {
+        id: 'pfd',
+        label: 'PFD copilote',
+        x1: 2815, y1: 674, x2: 3196, y2: 994,
+        next: null,
+        isSolution: false
+      }
+    ]
   }
 };
 
