@@ -149,8 +149,13 @@ button{
     <div class="row" style="justify-content:space-between">
       <h1>✈️ Test Cockpit Cliquable</h1>
       <button id="themeToggle" class="btn-gray" title="Changer de thème">🌙/☀️</button>
+    <button id="homeBtn" class="btn-gray" title="Retour à l'accueil">🏠 Accueil</button>
     </div>
-
+    <script>
+    document.getElementById("homeBtn").addEventListener("click", () => {
+    window.location.href = "https://adpmt.github.io/QCM-ADPMT/";
+    });
+    </script>
     <!-- Outils (pseudo / timer / score) -->
     <div class="row">
       <div style="min-width:160px">

@@ -8,8 +8,7 @@
     /* PMt hidden mark */
     html, body { min-height: 100vh; }
     body {
-  background: #0f172a;
-  color: #e5e7eb;
+
   font-family: system-ui, Segoe UI, Roboto, sans-serif;
   margin: 0;
   min-height: 100vh;
@@ -223,14 +222,68 @@
       padding:8px
     }
     body.fs .board.show{ display:block }
-	
+	/* =========================
+   THEMES (dark / light)
+   ========================= */
+
+/* thème sombre par défaut */
+:root{
+  --bg: #0f172a;
+  --text: #e5e7eb;
+  --card: #1e293b;
+  --panel: #0b1223;
+  --border: #334155;
+  --btn: #2563eb;
+}
+
+/* thème clair */
+html[data-theme="light"]{
+  --bg: #f8fafc;
+  --text: #0f172a;
+  --card: #ffffff;
+  --panel: #e2e8f0;
+  --border: #cbd5e1;
+  --btn: #2563eb;
+}
+
+/* branche les variables */
+body{
+  background: var(--bg);
+  color: var(--text);
+}
+
+.card{
+  background: var(--card);
+}
+
+.log,
+.lexique{
+  background: var(--panel);
+}
+
+th,
+td{
+  border-bottom: 1px solid var(--border);
+}
+
+button{
+  background: var(--btn);
+  color: white;
+}
+
   </style>
 </head>
 <body>
 
   <!-- COLONNE UNIQUE -->
   <div class="card main">
+    
     <h1>Quiz Anglais Aero</h1><!-- pMt -->
+    <div class="row">
+  <button id="homeBtn" class="btn-gray">🏠 Accueil</button>
+  <button id="themeToggle" class="btn-gray">🌙/☀️</button>
+</div>
+    
 
     <!-- Paramètres joueur / mode -->
     <div class="row">
@@ -354,6 +407,11 @@
   <script>
     // (tu gardes tout ton JS ici exactement comme avant)
   </script>
+  <script>
+  document.getElementById("homeBtn").addEventListener("click", () => {
+    window.location.href = "https://adpmt.github.io/QCM-ADPMT/";
+  });
+</script>
 </body>
 </html>
 
@@ -1304,5 +1362,26 @@ function saveScore(){
       if(dropdown && !dropdown.contains(e.target)) dropdown.classList.remove('open');
     });
   </script>
+  
+  <script>
+  // ====== Thème clair/sombre (pour le bouton 🌙/☀️)
+  const THEME_KEY = 'ata_theme';
+
+  (function applyTheme(){
+    const t = localStorage.getItem(THEME_KEY) || 'dark';
+    document.documentElement.setAttribute('data-theme', t === 'light' ? 'light' : 'dark');
+  })();
+
+  const themeToggleBtn = document.getElementById('themeToggle'); // ✅ pas "themeBtn"
+  if(themeToggleBtn){
+    themeToggleBtn.addEventListener('click', () => {
+      const cur = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+      const nxt = cur === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', nxt);
+      localStorage.setItem(THEME_KEY, nxt);
+    });
+  }
+</script>
+
 </body>
 </html>
