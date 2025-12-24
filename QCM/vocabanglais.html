@@ -390,7 +390,6 @@ button{
           <span class="muted">Trier par :</span>
           <button class="btn-gray" id="lbSortNote">Note</button>
           <button class="btn-gray" id="lbSortDate">Date</button>
-          <button class="btn-gray" id="lbSortSpeed">Vitesse</button>
         </div>
       </div>
 
@@ -750,9 +749,7 @@ Distance de décollage = Take-off distance = Take off distance | Take Off Distan
     let currentQ='',currentAnswers=[];
     // NEW : garder la paire en cours pour marquer la maîtrise
     let currentPair=null;
-    let qStartMs = 0;     // début de la question affichée
-    let okTimeMs = 0;     // somme des temps sur les réponses OK
-    let okSpeedCount = 0; // nb de réponses OK comptées pour la vitesse
+
     let mode='FREE'; let perQuestion=10; let tRef=null; let remaining=0; let inGame=false;
     let gameStart=0;
 
@@ -815,7 +812,6 @@ Distance de décollage = Take-off distance = Take off distance | Take Off Distan
       }
 
       $('#question').textContent=currentQ;
-      qStartMs = Date.now();
       if(mode==='TIMER') startTick();
     }
 
@@ -875,22 +871,15 @@ Distance de décollage = Take-off distance = Take off distance | Take Off Distan
       if(leaderboardSort==='pct') entries.sort((a,b)=> b.pct - a.pct || a.durMs - b.durMs );
       else if(leaderboardSort==='note') entries.sort((a,b)=> b.note - a.note || a.durMs - b.durMs);
       else if(leaderboardSort==='date') entries.sort((a,b)=> (b.ts||'').localeCompare(a.ts||''));
-      else if(leaderboardSort==='speed'){  entries.sort((a,b)=> (a.avgOkMs ?? 1e15) - (b.avgOkMs ?? 1e15) ||  // plus rapide d'abord
-      (b.pct - a.pct) ||                            // puis meilleur %
-      (a.durMs - b.durMs)                           // puis durée totale
-      );
-      }
       // Ne garder que les 15 premiers à l'affichage
       entries = entries.slice(0,15);
-      let html='<table><thead><tr><th>Joueur</th><th>%</th><th>Note</th><th>Rapidité</th><th>Réponses</th><th>Combos</th><th>Horodatage</th></tr></thead><tbody>';
+      let html='<table><thead><tr><th>Joueur</th><th>%</th><th>Note</th><th>Réponses</th><th>Combos</th><th>Horodatage</th></tr></thead><tbody>';
       for(const e of entries){
         const ts = (e.ts) ? e.ts : (e.date && e.hour ? `${e.date},${String(e.hour).replace('h',':').padEnd(5,'0').slice(0,5)}` : '');
-        const speedTxt = (e.avgOkMs != null) ? `${(e.avgOkMs / 1000).toFixed(2)} s/OK` : '—';
         html+=`<tr>
           <td>${e.player||'—'}</td>
           <td>${(e.pct??0).toFixed(1)}</td>
           <td>${(e.note??0).toFixed(1)}/20</td>
-          <td>${speedTxt}</td>
           <td><span style="color:#22c55e">${e.ok||0}</span>/<span style="color:#fbbf24">${e.bof||0}</span>/<span style="color:#ef4444">${e.bad||0}</span></td>
           <td>🔥 ${e.combos||0}</td>
           <td>${ts}</td>
@@ -917,7 +906,7 @@ function saveScore(){
   const note = asked ? Math.round(points/asked*200)/10 : 0;   // ex: 14.6 (sur 20)
   const durMs = Date.now() - gameStart;
   const dateObj = new Date();
-  const avgOkMs = okSpeedCount ? Math.round(okTimeMs / okSpeedCount) : null;
+
   const player = ($('#player').value || localStorage.getItem('playerName') || 'Anonyme').trim();
   localStorage.setItem('playerName', player);
 
@@ -931,7 +920,6 @@ function saveScore(){
     pct,
     note,
     durMs,
-    avgOkMs,
     combos: comboPoints,
     date: dateObj.toLocaleDateString('fr-FR'),
     hour,
@@ -1038,11 +1026,7 @@ function saveScore(){
       if(mode==='TIMER') stopTick();
 
       const res=checkAnswer(val);
-      const dt = Date.now() - qStartMs;
-      if(res.kind === 'ok'){
-      okTimeMs += dt;
-      okSpeedCount++;
-      }
+
       asked++;
       points+=res.pts;
       if(res.kind==='ok') okCount++;
@@ -1173,9 +1157,6 @@ function saveScore(){
 
     // Démarrer
     $('#start').onclick=()=>{
-      okTimeMs = 0;
-      okSpeedCount = 0;
-      qStartMs = Date.now();
       const selectedPairs = buildPairsFromSelectedThemes();
       if(selectedPairs.length===0){
         alert('Sélectionne au moins un thème.');
@@ -1239,7 +1220,7 @@ function saveScore(){
       gameStart=Date.now();
       lastResult=null;
       setPrevBadge(null);
-      
+
       const selectedPairs = buildPairsFromSelectedThemes();
       if(selectedPairs.length===0){
         alert('Sélectionne au moins un thème.');
@@ -1379,7 +1360,6 @@ function saveScore(){
     wireSort('lbSortDate','date');
     wireSort('lbSortNoteFS','note');
     wireSort('lbSortDateFS','date');
-    wireSort('lbSortSpeed','speed');
 
     loadPlayer();
     // Enforce max 10 chars on first name
