@@ -710,7 +710,7 @@ Distance de décollage = Take-off distance = Take off distance | Take Off Distan
       localStorage.setItem('progress_Anglais', JSON.stringify(p));
     }
 
-    let progress = loadProgress(); // { "aile::wing": "ok", ... }
+    let sessionProgress = {}; // reset à chaque partie
 
     // Construire un deck qui NE PREND PAS les mots déjà maîtrisés
     function buildLearningDeck(pairs){
@@ -738,6 +738,19 @@ Distance de décollage = Take-off distance = Take off distance | Take Off Distan
       return {done,total:pairs.length,left:pairs.length-done};
     }
 
+    function countSessionMastery(pairs){
+    let done = 0;
+    for(const p of pairs){
+    const k = makeKey(p);
+    if(sessionProgress[k] === 'ok') done++;
+    }
+    return {
+    done,
+    total: pairs.length,
+    left: pairs.length - done
+    };
+    }
+
     // ========= Algorithmes quiz =========
     const levenshtein=(a,b)=>{if(a===b)return 0;if(!a)return b.length;if(!b)return a.length;const n=a.length,m=b.length;let prev=Array(m+1).fill(0),curr=Array(m+1).fill(0);for(let j=0;j<=m;j++)prev[j]=j;for(let i=1;i<=n;i++){curr[0]=i;for(let j=1;j<=m;j++){const cost=a[i-1]===b[j-1]?0:1;curr[j]=Math.min(prev[j]+1,curr[j-1]+1,prev[j-1]+cost);} [prev,curr]=[curr,prev];}return prev[m]};
 
@@ -755,8 +768,14 @@ Distance de décollage = Take-off distance = Take off distance | Take Off Distan
 
     let okCount=0,bofCount=0,badCount=0;
 
+    let qStartMs = 0;     // début de la question affichée
+    let okTimeMs = 0;     // somme des temps sur les réponses OK
+    let okSpeedCount = 0; 
+
     const COMBO_START=3000, COMBO_KEEP=10000;
     let lastAnsTime=null, comboActive=false, comboLen=0, comboCount=0, comboHideTO=null;
+    let comboPoints = 0;      // somme des combos (ex: 41+31+...)
+    let comboBestStreak = 0;  // meilleur combo de la streak en cours
 
     // Résultat précédent (affiché à côté du prochain mot) + auto-hide 2s
     let lastResult=null; // 'ok' | 'bof' | 'bad' | null
@@ -811,6 +830,8 @@ Distance de décollage = Take-off distance = Take off distance | Take Off Distan
 
       $('#question').textContent=currentQ;
       if(mode==='TIMER') startTick();
+
+      qStartMs = Date.now();
     }
 
     function checkAnswer(raw){
@@ -830,7 +851,7 @@ Distance de décollage = Take-off distance = Take off distance | Take Off Distan
       const progQ = order.length ? ` | ${idx}/${order.length}` : '';
 
       const selPairs = buildPairsFromSelectedThemes();
-      const mastery = countMastery(selPairs); // {done,total,left}
+      const mastery = countSessionMastery(selPairs);
       const masteryTxt = ` | Maîtrisé: ${mastery.done}/${mastery.total} | Reste: ${mastery.left}`;
 
       $('#stats').textContent=
@@ -871,13 +892,15 @@ Distance de décollage = Take-off distance = Take off distance | Take Off Distan
       else if(leaderboardSort==='date') entries.sort((a,b)=> (b.ts||'').localeCompare(a.ts||''));
       // Ne garder que les 15 premiers à l'affichage
       entries = entries.slice(0,15);
-      let html='<table><thead><tr><th>Joueur</th><th>%</th><th>Note</th><th>Réponses</th><th>Combos</th><th>Horodatage</th></tr></thead><tbody>';
+      let html='<table><thead><tr><th>Joueur</th><th>%</th><th>Note</th><th>Rapidité</th><th>Réponses</th><th>Combos</th><th>Horodatage</th></tr></thead><tbody>';
       for(const e of entries){
         const ts = (e.ts) ? e.ts : (e.date && e.hour ? `${e.date},${String(e.hour).replace('h',':').padEnd(5,'0').slice(0,5)}` : '');
+        const speedTxt = (e.avgOkMs != null) ? `${(e.avgOkMs / 1000).toFixed(2)} s/OK`: '—';
         html+=`<tr>
           <td>${e.player||'—'}</td>
           <td>${(e.pct??0).toFixed(1)}</td>
           <td>${(e.note??0).toFixed(1)}/20</td>
+          <td>${speedTxt}</td>
           <td><span style="color:#22c55e">${e.ok||0}</span>/<span style="color:#fbbf24">${e.bof||0}</span>/<span style="color:#ef4444">${e.bad||0}</span></td>
           <td>🔥 ${e.combos||0}</td>
           <td>${ts}</td>
@@ -904,6 +927,8 @@ function saveScore(){
   const note = asked ? Math.round(points/asked*200)/10 : 0;   // ex: 14.6 (sur 20)
   const durMs = Date.now() - gameStart;
   const dateObj = new Date();
+  const avgOkMs = okSpeedCount ? Math.round(okTimeMs / okSpeedCount) : null;
+
 
   const player = ($('#player').value || localStorage.getItem('playerName') || 'Anonyme').trim();
   localStorage.setItem('playerName', player);
@@ -918,7 +943,8 @@ function saveScore(){
     pct,
     note,
     durMs,
-    combos: comboCount,
+    avgOkMs,
+    combos: comboPoints,
     date: dateObj.toLocaleDateString('fr-FR'),
     hour,
     ok: okCount,
@@ -977,7 +1003,9 @@ function saveScore(){
     // Combo
     function showCombo(){ $('#comboLen').textContent=comboLen; $('#comboWrap').style.display='inline-flex' }
     function hideCombo(){ $('#comboWrap').style.display='none' }
-    function endCombo(){ comboActive=false; comboLen=0; hideCombo(); clearTimeout(comboHideTO); }
+    function finalizeComboStreak(){if(comboBestStreak >= 2){comboPoints += comboBestStreak;} comboBestStreak = 0;}   // On ajoute le meilleur combo atteint dans la streak (si >=2)
+    function endCombo(){ finalizeComboStreak(); comboActive=false; comboLen=0; hideCombo(); clearTimeout(comboHideTO);}
+
     function updateComboOnAnswer(nonEmpty){
       const now = performance.now();
       if(!nonEmpty){ lastAnsTime = now; return; }
@@ -987,14 +1015,20 @@ function saveScore(){
       if(!comboActive){
         if(now - lastAnsTime <= COMBO_START){
           comboActive=true; comboLen=2; comboCount++; showCombo();
+          comboBestStreak = Math.max(comboBestStreak, comboLen);
+
         } else {
           comboLen=1;
         }
       } else {
         if(now - lastAnsTime <= COMBO_KEEP){
           comboLen++; showCombo();
+          comboBestStreak = Math.max(comboBestStreak, comboLen);
+
         } else {
           comboActive=false; comboLen=1; hideCombo();
+          comboBestStreak = Math.max(comboBestStreak, comboLen);
+
         }
       }
       lastAnsTime = now;
@@ -1016,6 +1050,11 @@ function saveScore(){
       if(mode==='TIMER') stopTick();
 
       const res=checkAnswer(val);
+      const dt = Date.now() - qStartMs;
+      if(res.kind === 'ok'){
+      okTimeMs += dt;
+      okSpeedCount++;
+      }
 
       asked++;
       points+=res.pts;
@@ -1026,8 +1065,7 @@ function saveScore(){
       // Marquer ce mot comme maîtrisé si c'est bien répondu
       if(res.kind==='ok' && currentPair){
         const k = makeKey(currentPair);
-        progress[k] = 'ok';
-        saveProgress(progress);
+        sessionProgress[k] = 'ok';
       }
 
       // Mémorise le résultat pour le badge de la prochaine question
@@ -1076,7 +1114,8 @@ function saveScore(){
       const durMs=Date.now()-gameStart;
       const mm=Math.floor(durMs/60000);
       const ss=Math.floor((durMs%60000)/1000).toString().padStart(2,'0');
-      alert(`${$('#stats').textContent}\nDurée: ${mm}:${ss}\nCombos: 🔥 ${comboCount}`);
+      finalizeComboStreak();
+      alert(`${$('#stats').textContent}\nDurée: ${mm}:${ss}\nCombo points: 🔥 ${comboPoints}`);
       saveScore();
       $('#validate').disabled=true;
       $('#stop').disabled=true;
@@ -1151,7 +1190,9 @@ function saveScore(){
         alert('Sélectionne au moins un thème.');
         return;
       }
-
+      okTimeMs = 0;
+      okSpeedCount = 0;
+      qStartMs = Date.now();
       direction=$('#direction').value;
       maxTypos=parseInt($('#maxTypos').value)||4;
       mode=$('#mode').value;
@@ -1161,15 +1202,15 @@ function saveScore(){
       okCount=0; bofCount=0; badCount=0;
       $('#log').innerHTML='';
       $('#feedback').textContent='';
-      comboActive=false; comboLen=0; comboCount=0; lastAnsTime=null;
+      comboActive=false; comboLen=0; comboCount=0; lastAnsTime=null;comboPoints = 0;comboBestStreak = 0;
       hideCombo(); clearTimeout(comboHideTO);
       gameStart=Date.now();
       lastResult=null;
       setPrevBadge(null); // pas de badge pour la toute première
 
       // === NOUVEAU : deck filtré par progression
-      order = buildLearningDeck(selectedPairs);
-	  initialDeckSize = order.length;
+      order = buildDeckFromPairs(selectedPairs, 2);
+      initialDeckSize = order.length;
 
 
       if(order.length===0){
@@ -1204,7 +1245,7 @@ function saveScore(){
       okCount=0; bofCount=0; badCount=0;
       $('#log').innerHTML='';
       $('#feedback').textContent='';
-      comboActive=false; comboLen=0; comboCount=0; lastAnsTime=null;
+      comboActive=false; comboLen=0; comboCount=0; lastAnsTime=null;comboPoints = 0;comboBestStreak = 0;
       hideCombo(); clearTimeout(comboHideTO);
       gameStart=Date.now();
       lastResult=null;
