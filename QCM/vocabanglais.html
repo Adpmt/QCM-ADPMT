@@ -147,6 +147,33 @@
       font-size:.8rem
     }
 
+    /* Difficulté (ligne sous "Thèmes") */
+    .difficultyLine{
+    margin-top:6px;
+    font-size:.95rem;
+      font-weight:700;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    }
+
+    .difficultyDot{
+    width:10px;
+    height:10px;
+    border-radius:999px;
+    display:inline-block;
+    background: currentColor; /* prend la couleur du texte */
+    box-shadow:0 0 0 3px rgba(255,255,255,.06);
+    }
+
+    /* Couleurs progressives */
+    .diff-blue{ color:#3b82f6; }   /* 🟦 */
+    .diff-green{ color:#22c55e; }  /* 🟩 */
+    .diff-yellow{ color:#fbbf24; } /* 🟨 */
+    .diff-orange{ color:#fb923c; } /* 🟧 */
+    .diff-red{ color:#ef4444; }    /* 🟥 */
+
+
     /* Badge "résultat précédent" */
     .badge-status{
       margin-left:10px;
@@ -336,6 +363,11 @@ button{
         </div>
       </div>
     </div>
+    <div id="difficultyLine" class="difficultyLine">
+          <span class="difficultyDot"></span>
+          <span id="difficultyText">Mode challenger</span>
+          <span class="muted" id="difficultyMeta" style="margin-left:6px"></span>
+          </div>
 
     <!-- Boutons de contrôle -->
     <div class="row" style="margin:10px 0">
@@ -668,7 +700,7 @@ Altitude densité = Density altitude
 Taux de montée = Rate of climb | Climb rate | Vertical speed indicator
 Plafond pratique = Service ceiling
 Distance de décollage = Take-off distance = Take off distance | Take Off Distance Available | TODA`
-    };
+};
 
     // ========= PARSE & HELPERS =========
     const $=sel=>document.querySelector(sel);
@@ -898,8 +930,10 @@ Distance de décollage = Take-off distance = Take off distance | Take Off Distan
 
     // ===== Classement (sans durée ni horodatage) =====
     function getEntries(){ try{ return JSON.parse(localStorage.getItem('score_Anglais')||'[]') }catch(e){ return [] } }
+
     function setEntries(arr){ localStorage.setItem('score_Anglais', JSON.stringify(arr)); }
     let leaderboardSort = 'note';
+
     function renderLeaderboard(){
       let entries=getEntries();
       if(entries.length===0){
@@ -913,7 +947,7 @@ Distance de décollage = Take-off distance = Take off distance | Take Off Distan
       else if(leaderboardSort==='date') entries.sort((a,b)=> (b.ts||'').localeCompare(a.ts||''));
       // Ne garder que les 15 premiers à l'affichage
       entries = entries.slice(0,15);
-      let html='<table><thead><tr><th>Joueur</th><th>%</th><th>Note</th><th>Rapidité</th><th>Réponses</th><th>Combos</th><th>Horodatage</th></tr></thead><tbody>';
+      let html='<table><thead><tr><th>Joueur</th><th>%</th><th>Note</th><th>Questions</th><th>Rapidité</th><th>Réponses</th><th>Combos</th><th>Horodatage</th></tr></thead><tbody>';
       for(const e of entries){
         const ts = (e.ts) ? e.ts : (e.date && e.hour ? `${e.date},${String(e.hour).replace('h',':').padEnd(5,'0').slice(0,5)}` : '');
         const speedTxt = (e.avgOkMs != null) ? `${(e.avgOkMs / 1000).toFixed(2)} s/OK`: '—';
@@ -921,6 +955,7 @@ Distance de décollage = Take-off distance = Take off distance | Take Off Distan
           <td>${e.player||'—'}</td>
           <td>${(e.pct??0).toFixed(1)}</td>
           <td>${(e.note??0).toFixed(1)}/20</td>
+          <td>${e.questions ?? '—'}</td>
           <td>${speedTxt}</td>
           <td><span style="color:#22c55e">${e.ok||0}</span>/<span style="color:#fbbf24">${e.bof||0}</span>/<span style="color:#ef4444">${e.bad||0}</span></td>
           <td>🔥 ${e.combos||0}</td>
@@ -963,6 +998,7 @@ function saveScore(){
     points,
     pct,
     note,
+    questions: asked, 
     durMs,
     avgOkMs,
     combos: comboPoints,
@@ -1066,6 +1102,7 @@ function saveScore(){
     }
 
     function handleValidate(){
+      if(!inGame) return;
       const val=$('#answer').value.trim();
       if(!val && mode!=='TIMER') return;
       if(mode==='TIMER') stopTick();
@@ -1106,6 +1143,7 @@ function saveScore(){
     }
 
     function forcedValidate(){
+      if(!inGame) return;
       // Temps écoulé => considéré FAUX pour le badge suivant
       lastResult = 'bad';
 
@@ -1129,22 +1167,38 @@ function saveScore(){
     }
 
     // ==== FIN / STOP ====
-    function finishGame(){
-      if(!inGame) return;
-      if(mode==='TIMER') stopTick();
-      const durMs=Date.now()-gameStart;
-      const mm=Math.floor(durMs/60000);
-      const ss=Math.floor((durMs%60000)/1000).toString().padStart(2,'0');
-      finalizeComboStreak();
-      alert(`${$('#stats').textContent}\nDurée: ${mm}:${ss}\nCombo points: 🔥 ${comboPoints}`);
-      saveScore();
-      $('#validate').disabled=true;
-      $('#stop').disabled=true;
-      inGame=false;
-      $('#toggleLexique').disabled=false;
-      $('#countdownWrap').style.display='none';
-      hideCombo();
-    }
+   function finishGame(fromStop = false){
+  if(!inGame) return;
+
+  inGame = false;
+
+  if(mode === 'TIMER') stopTick();
+
+  finalizeComboStreak();
+
+  // 🔔 Popup UNIQUEMENT si fin normale (pas via STOP)
+  if(!fromStop){
+    const durMs = Date.now() - gameStart;
+    const mm = Math.floor(durMs / 60000);
+    const ss = Math.floor((durMs % 60000) / 1000).toString().padStart(2,'0');
+
+    alert(`${$('#stats').textContent}\nDurée: ${mm}:${ss}\nCombo points: 🔥 ${comboPoints}`);
+    saveScore();
+  }
+
+  // 🔒 Verrouillage de l’interface
+  $('#validate').disabled = true;
+  $('#stop').disabled = true;
+  $('#answer').disabled = true;
+
+  // 🎛️ Boutons
+  $('#restart').style.display = 'none';
+  $('#start').style.display = 'inline-block';
+
+  $('#toggleLexique').disabled = false;
+  $('#countdownWrap').style.display = 'none';
+  hideCombo();
+}
 
     // ===== UI Wiring =====
     $('#mode').addEventListener('change',e=>{
@@ -1180,7 +1234,45 @@ function saveScore(){
     function updateThemeCount(){
       const n = document.querySelectorAll('.theme-check:checked').length;
       themeCount.textContent = n ? `${n} sélection${n>1?'s':''}` : 'aucune sélection';
+      updateDifficulty(); // ✅ met à jour texte + couleur en temps réel
     }
+
+    function updateDifficulty(){
+    const line = document.getElementById('difficultyLine');
+    const text = document.getElementById('difficultyText');
+    const meta = document.getElementById('difficultyMeta');
+    if(!line || !text || !meta) return;
+
+    // nombre de "paires" sélectionnées
+    const pairs = buildPairsFromSelectedThemes().length;
+
+    // ton deck est doublé (buildDeckFromPairs(..., 2)) => total de questions
+    const totalQ = pairs * 2;
+
+    // Reset classes couleur
+    line.classList.remove('diff-blue','diff-green','diff-yellow','diff-orange','diff-red');
+
+    // Seuils (ajuste si tu veux). Important : 102 thèmes par défaut => 204 questions => "Mode challenger" (🟨)
+    let label = 'Mode chill';
+    let cls = 'diff-blue';
+
+    if(totalQ <= 60){
+      label = 'Mode chill'; cls = 'diff-blue';
+    }else if(totalQ <= 140){
+      label = 'Mode normal'; cls = 'diff-green';
+    }else if(totalQ <= 260){
+      label = 'Mode challenger'; cls = 'diff-yellow';
+    }else if(totalQ <= 360){
+      label = 'Mode Hardcore'; cls = 'diff-orange';
+    }else{
+      label = 'LEGENDARY ENABLED'; cls = 'diff-red';
+    }
+
+    line.classList.add(cls);
+    text.textContent = label;
+    meta.textContent = totalQ ? `(${totalQ} questions)` : '(0 question)';
+    }
+
 
     $('#closeTheme').addEventListener('click',()=>{
       dropdown.classList.remove('open');
@@ -1233,21 +1325,14 @@ function saveScore(){
       order = buildDeckFromPairs(selectedPairs, 2);
       initialDeckSize = order.length;
 
-
-      if(order.length===0){
-        // tout appris !
-        inGame=false;
-        $('#validate').disabled=true;
-        $('#stop').disabled=true;
-        $('#toggleLexique').disabled=false;
-        alert("🔥 Tu as déjà validé toutes les questions de ces thèmes !");
-        updateStats();
-        return;
-      }
-
       $('#validate').disabled=false;
       $('#stop').disabled=false;
       inGame=true;
+      $('#answer').disabled = false;
+      $('#answer').value = '';
+      $('#answer').focus();
+      $('#restart').style.display = 'inline-block';
+      $('#start').style.display = 'none';
       $('#toggleLexique').disabled=true;
       closeLexique();
 
@@ -1256,7 +1341,7 @@ function saveScore(){
       $('#answer').focus();
     }
 
-    $('#stop').onclick=finishGame;
+    $('#stop').onclick= () =>finishGame(true);
 
     $('#restart').onclick=()=>{
       if(mode==='TIMER') stopTick();
@@ -1273,29 +1358,18 @@ function saveScore(){
       setPrevBadge(null);
 
       const selectedPairs = buildPairsFromSelectedThemes();
-      if(selectedPairs.length===0){
-        alert('Sélectionne au moins un thème.');
-        return;
-      }
 
       // toujours deck basé sur ce qui reste à apprendre
-      order = buildLearningDeck(selectedPairs);
-
-      if(order.length===0){
-        inGame=false;
-        $('#validate').disabled=true;
-        $('#stop').disabled=true;
-        $('#toggleLexique').disabled=false;
-        alert("🔥 Tu as déjà validé toutes les questions de ces thèmes !");
-        updateStats();
-        return;
-      }
+      order = buildDeckFromPairs(selectedPairs, 2);
 
       nextQ();
       updateStats();
       $('#validate').disabled=false;
       $('#stop').disabled=false;
       inGame=true;
+      $('#answer').disabled = false;
+      $('#answer').value = '';
+      $('#answer').focus();
       $('#toggleLexique').disabled=true;
       $('#answer').value='';
       $('#answer').focus();
@@ -1398,6 +1472,8 @@ function saveScore(){
     renderThemeCheckboxes();
     renderLexique('');
     renderLeaderboard();
+    updateDifficulty();
+
     // Wire sorting buttons
     const wireSort = (id, key)=>{
       const el=document.getElementById(id);
