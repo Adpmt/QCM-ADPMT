@@ -22,7 +22,7 @@ Un affichage clair, adapté aux mobiles
 
 Un mode clair/sombre
 
-Un fonctionnement autonome (aucune connexion requise après le chargement)
+Un fonctionnement autonome (aucune connexion requise après le chargement d'un qcm)
 
 💡 À propos
 
