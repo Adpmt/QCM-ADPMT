@@ -48,13 +48,21 @@
       border-radius:8px;
       border:none
     }
-    input,select{width:100%}
+    input, select {
+    width: auto;
+    min-width: 0;
+    }
+
     button{cursor:pointer;background:#2563eb;color:white}
     .row{
       display:flex;
       gap:8px;
       align-items:center;
       flex-wrap:wrap
+    }
+    .row > div {
+    display: flex;
+    flex-direction: column;
     }
     .ok{color:#22c55e}
     .bof{color:#fbbf24}
@@ -319,7 +327,7 @@ button{
         <input id="player" placeholder="Ton nom" maxlength="10" />
       </div>
 
-      <div style="flex:1">
+      <div style="width:110px">
         <label>Direction</label>
         <select id="direction">
           <option value="FREN">Fr → En</option>
@@ -327,12 +335,12 @@ button{
         </select>
       </div>
 
-      <div style="width:130px">
-        <label>Tol. fautes (0.5 pt)</label>
+      <div style="width:90px">
+        <label>Tolérance</label>
         <input type="number" id="maxTypos" min="0" max="10" value="4" />
       </div>
 
-      <div style="width:150px">
+      <div style="width:80px">
         <label>Mode</label>
         <select id="mode">
           <option value="FREE">Libre</option>
