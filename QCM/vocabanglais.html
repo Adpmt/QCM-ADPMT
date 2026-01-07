@@ -834,25 +834,52 @@ Distance de décollage = Take-off distance = Take off distance | Take Off Distan
     let lastResult=null; // 'ok' | 'bof' | 'bad' | null
     let prevBadgeTO=null;
 
-    // ===== Lexique selon thèmes cochés =====
-    function renderLexique(filter=''){
-      const lex = $('#lexique');
-      const f = filter.trim().toLowerCase();
-      const pairs = buildPairsFromSelectedThemes();
-      const rows = pairs.map(p=>{
-        const left=p.FR, right=p.EN; let line=`• <b>${left}</b> = ${right}`;
-        if(f){
-          const re=new RegExp(f.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i');
-          if(re.test(left)||re.test(right)){
-            line=line.replace(re, m=>`<span class="hl">${m}</span>`);
-          }
-        }
-        return line;
-      });
-      lex.innerHTML = rows.join('\n') || '<span class="muted">Aucun terme (sélectionne au moins un thème)</span>';
+// Match contigu (les lettres doivent se suivre et se toucher)
+function matchContiguous(query, text){
+  const q = normalize(query).trim();
+  if(!q) return true;
+  const t = normalize(text);
+  return t.includes(q);
+}
+
+// ===== Lexique selon thèmes cochés =====
+function renderLexique(filter=''){
+  const lex = $('#lexique');
+  const f = filter || '';
+  const pairs = buildPairsFromSelectedThemes();
+
+  // ✅ filtre contigu sur FR ou EN
+  const filtered = !f.trim()
+    ? pairs
+    : pairs.filter(p => matchContiguous(f, p.FR) || matchContiguous(f, p.EN));
+
+  if(filtered.length === 0){
+    lex.innerHTML = '<span class="muted">Aucun résultat.</span>';
+    return;
+  }
+
+  // ✅ surlignage contigu fiable (sur texte normalisé -> on surligne juste visuellement si possible)
+  const safe = f.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  const re = safe ? new RegExp(safe, 'ig') : null;
+
+  const rows = filtered.map(p=>{
+    let left = p.FR;
+    let right = p.EN;
+
+    if(re){
+      left = left.replace(re, m=>`<span class="hl">${m}</span>`);
+      right = right.replace(re, m=>`<span class="hl">${m}</span>`);
     }
 
-    // Badge résultat précédent (auto-disparition après 2s)
+    return `• <b>${left}</b> = ${right}`;
+  });
+
+  lex.innerHTML = rows.join('\n');
+}
+
+
+
+    // Badge résultat précédent (auto-disparition après 3s)
     function setPrevBadge(kind){
       const el = $('#prevBadge');
       el.className = 'badge-status';
@@ -862,8 +889,8 @@ Distance de décollage = Take-off distance = Take off distance | Take Off Distan
       if(kind==='ok'){ el.textContent='OK'; el.classList.add('badge-ok'); }
       else if(kind==='bof'){ el.textContent='BOF'; el.classList.add('badge-bof'); }
       else { el.textContent='FAUX'; el.classList.add('badge-bad'); }
-      // Auto-hide after 2s
-      prevBadgeTO = setTimeout(()=>{ el.style.display='none'; }, 2000);
+      // Auto-hide after 3s
+      prevBadgeTO = setTimeout(()=>{ el.style.display='none'; }, 3000);
     }
 
     function nextQ(){
@@ -1167,7 +1194,7 @@ function saveScore(){
     }
 
     // ==== FIN / STOP ====
-   function finishGame(fromStop = false){
+function finishGame(fromStop = false){
   if(!inGame) return;
 
   inGame = false;
@@ -1176,15 +1203,18 @@ function saveScore(){
 
   finalizeComboStreak();
 
-  // 🔔 Popup UNIQUEMENT si fin normale (pas via STOP)
-  if(!fromStop){
-    const durMs = Date.now() - gameStart;
-    const mm = Math.floor(durMs / 60000);
-    const ss = Math.floor((durMs % 60000) / 1000).toString().padStart(2,'0');
+  const durMs = Date.now() - gameStart;
+  const mm = Math.floor(durMs / 60000);
+  const ss = Math.floor((durMs % 60000) / 1000).toString().padStart(2,'0');
 
-    alert(`${$('#stats').textContent}\nDurée: ${mm}:${ss}\nCombo points: 🔥 ${comboPoints}`);
-    saveScore();
-  }
+  const prefix = fromStop ? "⛔ STOP\n" : "✅ FIN\n";
+
+  alert(
+    `${prefix}${$('#stats').textContent}\nDurée: ${mm}:${ss}\nCombo points: 🔥 ${comboPoints}`
+  );
+
+  // ✅ On enregistre dans tous les cas (STOP ou fin normale)
+  saveScore();
 
   // 🔒 Verrouillage de l’interface
   $('#validate').disabled = true;
@@ -1199,6 +1229,7 @@ function saveScore(){
   $('#countdownWrap').style.display = 'none';
   hideCombo();
 }
+
 
     // ===== UI Wiring =====
     $('#mode').addEventListener('change',e=>{
