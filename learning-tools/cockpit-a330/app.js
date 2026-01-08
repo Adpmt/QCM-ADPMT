@@ -1,1 +1,200 @@
+// Prototype Babylon.js : caméra fixe (pivot) + clic sur zones + quiz
 
+const canvas = document.getElementById("renderCanvas");
+const statusEl = document.getElementById("status");
+const questionEl = document.getElementById("question");
+const scoreEl = document.getElementById("score");
+const missEl = document.getElementById("miss");
+const btnNext = document.getElementById("btnNext");
+const btnReset = document.getElementById("btnReset");
+
+const engine = new BABYLON.Engine(canvas, true, {
+  preserveDrawingBuffer: true,
+  stencil: true,
+});
+
+let score = 0;
+let miss = 0;
+
+// --- Quiz minimal ---
+// Ici, les "id" doivent correspondre à mesh.metadata.instrumentId
+const QUESTIONS = [
+  { id: "MCDU", label: "Trouve le MCDU" },
+  { id: "ECAM_SD", label: "Trouve l’écran ECAM SD" },
+  { id: "ECAM_EWD", label: "Trouve l’écran ECAM E/WD" },
+  { id: "PEDESTAL", label: "Clique sur le pedestal (zone)" },
+  { id: "MAIN_PANEL", label: "Clique sur le Main Panel (zone)" },
+];
+
+let current = null;
+
+function setStatus(text) {
+  statusEl.textContent = text;
+}
+
+function setQuestion(q) {
+  current = q;
+  questionEl.textContent = q ? q.label : "—";
+  setStatus("À toi de jouer.");
+}
+
+function nextQuestion() {
+  const q = QUESTIONS[Math.floor(Math.random() * QUESTIONS.length)];
+  setQuestion(q);
+}
+
+function updateScoreUI() {
+  scoreEl.textContent = String(score);
+  missEl.textContent = String(miss);
+}
+
+// --- Scene ---
+const scene = new BABYLON.Scene(engine);
+scene.clearColor = new BABYLON.Color4(0.03, 0.04, 0.06, 1.0);
+
+// Lumières
+const hemi = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(0, 1, 0), scene);
+hemi.intensity = 0.9;
+
+// Caméra : ArcRotate = pivot simple (parfait pour ton mode “tourner la tête”)
+const camera = new BABYLON.ArcRotateCamera(
+  "cam",
+  BABYLON.Tools.ToRadians(180), // alpha (gauche/droite)
+  BABYLON.Tools.ToRadians(75),  // beta (haut/bas)
+  2.2,                           // rayon (distance)
+  new BABYLON.Vector3(0, 0.85, 0), // cible
+  scene
+);
+
+camera.attachControl(canvas, true);
+
+// Limites de rotation (évite de regarder derrière/sol/plafond)
+camera.lowerAlphaLimit = BABYLON.Tools.ToRadians(120);
+camera.upperAlphaLimit = BABYLON.Tools.ToRadians(240);
+camera.lowerBetaLimit  = BABYLON.Tools.ToRadians(55);
+camera.upperBetaLimit  = BABYLON.Tools.ToRadians(95);
+
+// Limites de zoom (optionnel) — tu peux même le bloquer totalement
+camera.lowerRadiusLimit = 1.8;
+camera.upperRadiusLimit = 2.6;
+
+// --- “Cockpit” simplifié : 3 grands panneaux + 3 zones instruments ---
+// Sol
+const floor = BABYLON.MeshBuilder.CreateGround("floor", { width: 4, height: 4 }, scene);
+floor.position.y = 0;
+const floorMat = new BABYLON.StandardMaterial("floorMat", scene);
+floorMat.diffuseColor = new BABYLON.Color3(0.10, 0.12, 0.16);
+floor.material = floorMat;
+
+// Main panel (plan vertical)
+const mainPanel = BABYLON.MeshBuilder.CreatePlane("mainPanel", { width: 2.2, height: 1.2 }, scene);
+mainPanel.position = new BABYLON.Vector3(0, 1.1, 1.2);
+mainPanel.rotation.y = Math.PI; // face vers la caméra
+mainPanel.metadata = { instrumentId: "MAIN_PANEL" };
+
+const mpMat = new BABYLON.StandardMaterial("mpMat", scene);
+mpMat.diffuseColor = new BABYLON.Color3(0.18, 0.20, 0.24);
+// Plus tard: mpMat.diffuseTexture = new BABYLON.Texture("./textures/mainpanel.jpg", scene);
+mainPanel.material = mpMat;
+
+// Pedestal (plan incliné)
+const pedestal = BABYLON.MeshBuilder.CreatePlane("pedestal", { width: 0.9, height: 0.7 }, scene);
+pedestal.position = new BABYLON.Vector3(0, 0.75, 0.55);
+pedestal.rotation.x = BABYLON.Tools.ToRadians(65);
+pedestal.rotation.y = Math.PI;
+pedestal.metadata = { instrumentId: "PEDESTAL" };
+
+const pedMat = new BABYLON.StandardMaterial("pedMat", scene);
+pedMat.diffuseColor = new BABYLON.Color3(0.16, 0.18, 0.22);
+pedestal.material = pedMat;
+
+// Zones “instruments” (petits rectangles cliquables posés sur les panneaux)
+// ECAM SD (sur main panel)
+const ecamSD = BABYLON.MeshBuilder.CreatePlane("ecamSD", { width: 0.42, height: 0.20 }, scene);
+ecamSD.position = new BABYLON.Vector3(-0.25, 1.05, 1.19);
+ecamSD.rotation.y = Math.PI;
+ecamSD.metadata = { instrumentId: "ECAM_SD" };
+
+const ecamMat = new BABYLON.StandardMaterial("ecamMat", scene);
+ecamMat.diffuseColor = new BABYLON.Color3(0.10, 0.35, 0.18);
+ecamSD.material = ecamMat;
+
+// ECAM E/WD
+const ecamEWD = BABYLON.MeshBuilder.CreatePlane("ecamEWD", { width: 0.42, height: 0.20 }, scene);
+ecamEWD.position = new BABYLON.Vector3(0.25, 1.05, 1.19);
+ecamEWD.rotation.y = Math.PI;
+ecamEWD.metadata = { instrumentId: "ECAM_EWD" };
+
+const ewdMat = new BABYLON.StandardMaterial("ewdMat", scene);
+ewdMat.diffuseColor = new BABYLON.Color3(0.35, 0.20, 0.10);
+ecamEWD.material = ewdMat;
+
+// MCDU (sur pedestal)
+const mcdu = BABYLON.MeshBuilder.CreatePlane("mcdu", { width: 0.35, height: 0.22 }, scene);
+mcdu.position = new BABYLON.Vector3(0, 0.80, 0.52);
+mcdu.rotation.x = pedestal.rotation.x;
+mcdu.rotation.y = Math.PI;
+mcdu.metadata = { instrumentId: "MCDU" };
+
+const mcduMat = new BABYLON.StandardMaterial("mcduMat", scene);
+mcduMat.diffuseColor = new BABYLON.Color3(0.12, 0.22, 0.40);
+mcdu.material = mcduMat;
+
+// Petit surlignage au survol (simple)
+let lastHover = null;
+
+scene.onPointerObservable.add((pointerInfo) => {
+  if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERMOVE) {
+    const pick = scene.pick(scene.pointerX, scene.pointerY);
+    if (lastHover && lastHover.material && lastHover.material.emissiveColor) {
+      lastHover.material.emissiveColor = BABYLON.Color3.Black();
+    }
+    lastHover = null;
+
+    if (pick?.hit && pick.pickedMesh?.metadata?.instrumentId) {
+      lastHover = pick.pickedMesh;
+      if (lastHover.material) {
+        lastHover.material.emissiveColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+      }
+    }
+  }
+
+  if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERPICK) {
+    const pick = scene.pick(scene.pointerX, scene.pointerY);
+    if (!pick?.hit) return;
+
+    const mesh = pick.pickedMesh;
+    const clickedId = mesh?.metadata?.instrumentId;
+    if (!clickedId || !current) return;
+
+    if (clickedId === current.id) {
+      score += 1;
+      setStatus(`✅ Correct : ${clickedId}`);
+      updateScoreUI();
+      nextQuestion();
+    } else {
+      miss += 1;
+      setStatus(`❌ Raté : tu as cliqué ${clickedId} (attendu ${current.id})`);
+      updateScoreUI();
+    }
+  }
+});
+
+btnNext.addEventListener("click", nextQuestion);
+btnReset.addEventListener("click", () => {
+  score = 0;
+  miss = 0;
+  updateScoreUI();
+  setStatus("Score remis à zéro.");
+});
+
+updateScoreUI();
+nextQuestion();
+setStatus("Prêt.");
+
+// Render loop
+engine.runRenderLoop(() => {
+  scene.render();
+});
+
+window.addEventListener("resize", () => engine.resize());
