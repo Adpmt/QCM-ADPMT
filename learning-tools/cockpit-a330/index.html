@@ -1,1 +1,45 @@
 
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Cockpit A330 - Learning Tool</title>
+  <link rel="stylesheet" href="./style.css" />
+
+  <!-- Babylon.js (CDN) -->
+  <script src="https://cdn.babylonjs.com/babylon.js"></script>
+  <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+</head>
+
+<body>
+  <div id="hud">
+    <div class="row">
+      <div class="badge">Cockpit A330 (prototype)</div>
+      <div id="status" class="status">Chargement…</div>
+    </div>
+
+    <div class="card">
+      <div class="label">Question</div>
+      <div id="question" class="question">—</div>
+
+      <div class="buttons">
+        <button id="btnNext" type="button">Question suivante</button>
+        <button id="btnReset" type="button" class="secondary">Reset score</button>
+      </div>
+
+      <div class="row small">
+        <div>Score : <span id="score">0</span> ✅</div>
+        <div>Erreurs : <span id="miss">0</span> ❌</div>
+      </div>
+
+      <div class="hint">
+        Clique sur une zone du “cockpit”. (Pour l’instant ce sont des zones simplifiées.)
+      </div>
+    </div>
+  </div>
+
+  <canvas id="renderCanvas"></canvas>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
