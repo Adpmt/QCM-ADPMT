@@ -68,7 +68,7 @@ const camera = new BABYLON.ArcRotateCamera(
 
 camera.attachControl(canvas, true);
 camera.panningSensibility = 0;
-camera.wheelPrecision = 250;
+camera.wheelPrecision = 200;
 
 
 // Limites de rotation (évite de regarder derrière/sol/plafond)
