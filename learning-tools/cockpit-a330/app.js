@@ -67,8 +67,8 @@ const camera = new BABYLON.ArcRotateCamera(
 );
 
 camera.attachControl(canvas, true);
-camera.angularSensibilityX = 600;
-camera.angularSensibilityY = 600;
+camera.angularSensibilityX = 1000 ;
+camera.angularSensibilityY = 1000;
 camera.panningSensibility = 0;
 camera.wheelPrecision = 200;
 
