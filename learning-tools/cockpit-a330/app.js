@@ -50,33 +50,36 @@ function updateScoreUI() {
 
 // --- Scene ---
 const scene = new BABYLON.Scene(engine);
-scene.clearColor = new BABYLON.Color4(0.03, 0.04, 0.06, 1.0);
+scene.clearColor = new BABYLON.Color4(0.45, 0.75, 0.90, 1.0);
 
 // Lumières
-const hemi = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(0, 1, 0), scene);
-hemi.intensity = 0.9;
+const hemi = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(20,20, 30), scene);
+hemi.intensity = 5;
 
 // Caméra : ArcRotate = pivot simple (parfait pour ton mode “tourner la tête”)
 const camera = new BABYLON.ArcRotateCamera(
   "cam",
-  BABYLON.Tools.ToRadians(180), // alpha (gauche/droite)
-  BABYLON.Tools.ToRadians(75),  // beta (haut/bas)
-  2.2,                           // rayon (distance)
-  new BABYLON.Vector3(0, 0.85, 0), // cible
+  BABYLON.Tools.ToRadians(90), // alpha (gauche/droite)
+  BABYLON.Tools.ToRadians(90),  // beta (haut/bas)
+  0.01,                           // rayon (distance)
+  new BABYLON.Vector3(0, 2.3, 2), // cible
   scene
 );
 
 camera.attachControl(canvas, true);
+camera.panningSensibility = 0;
+camera.wheelPrecision = 250;
+
 
 // Limites de rotation (évite de regarder derrière/sol/plafond)
-camera.lowerAlphaLimit = BABYLON.Tools.ToRadians(120);
-camera.upperAlphaLimit = BABYLON.Tools.ToRadians(240);
-camera.lowerBetaLimit  = BABYLON.Tools.ToRadians(55);
-camera.upperBetaLimit  = BABYLON.Tools.ToRadians(95);
+camera.lowerAlphaLimit = BABYLON.Tools.ToRadians(-90);
+camera.upperAlphaLimit = BABYLON.Tools.ToRadians(270);
+camera.lowerBetaLimit  = BABYLON.Tools.ToRadians(30);
+camera.upperBetaLimit  = BABYLON.Tools.ToRadians(179);
 
 // Limites de zoom (optionnel) — tu peux même le bloquer totalement
-camera.lowerRadiusLimit = 1.8;
-camera.upperRadiusLimit = 2.6;
+camera.lowerRadiusLimit = 0;
+camera.upperRadiusLimit = 2;
 
 // --- “Cockpit” simplifié : 3 grands panneaux + 3 zones instruments ---
 // Sol
@@ -87,47 +90,80 @@ floorMat.diffuseColor = new BABYLON.Color3(0.10, 0.12, 0.16);
 floor.material = floorMat;
 
 // Main panel (plan vertical)
-const mainPanel = BABYLON.MeshBuilder.CreatePlane("mainPanel", { width: 2.2, height: 1.2 }, scene);
-mainPanel.position = new BABYLON.Vector3(0, 1.1, 1.2);
-mainPanel.rotation.y = Math.PI; // face vers la caméra
+const mainPanel = BABYLON.MeshBuilder.CreatePlane(
+  "mainPanel",
+  { width: 3, height: 1.0, sideOrientation: BABYLON.Mesh.DOUBLESIDE },
+  scene
+);
+mainPanel.position = new BABYLON.Vector3(0, 1.4, 0);
+mainPanel.rotation.y = Math.PI;
 mainPanel.metadata = { instrumentId: "MAIN_PANEL" };
 
 const mpMat = new BABYLON.StandardMaterial("mpMat", scene);
-mpMat.diffuseColor = new BABYLON.Color3(0.18, 0.20, 0.24);
-// Plus tard: mpMat.diffuseTexture = new BABYLON.Texture("./textures/mainpanel.jpg", scene);
+mpMat.diffuseColor = new BABYLON.Color3(1, 1, 1);
+mpMat.diffuseTexture = new BABYLON.Texture("./textures/mainpanel.png", scene);
+mpMat.backFaceCulling = false;
 mainPanel.material = mpMat;
 
+// Overhead (plan horizontal au-dessus)
+const overhead = BABYLON.MeshBuilder.CreatePlane("overhead", { width: 1, height: 2.5, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
+overhead.position = new BABYLON.Vector3(0, 3.5, 2);
+
+// Overhead doit être "plafond" => on le couche (rotation X)
+overhead.rotation.x = BABYLON.Tools.ToRadians(90);
+// et on peut aussi le tourner pour qu'il soit orienté correctement
+overhead.rotation.y = Math.PI;
+
+
+overhead.metadata = { instrumentId: "OVERHEAD" };
+
+const ohMat = new BABYLON.StandardMaterial("ohMat", scene);
+ohMat.diffuseColor = new BABYLON.Color3(1, 1, 1);
+ohMat.diffuseTexture = new BABYLON.Texture("./textures/overhead.png", scene); 
+ohMat.useAlphaFromDiffuseTexture = true;
+ohMat.transparencyMode = BABYLON.Material.MATERIAL_ALPHABLEND;
+ohMat.diffuseTexture.wAng = Math.PI;
+ohMat.backFaceCulling = false;
+overhead.material = ohMat;
+ohMat.diffuseTexture.uScale = -1;
+ohMat.diffuseTexture.uOffset = 1;
+
+
+
 // Pedestal (plan incliné)
-const pedestal = BABYLON.MeshBuilder.CreatePlane("pedestal", { width: 0.9, height: 0.7 }, scene);
-pedestal.position = new BABYLON.Vector3(0, 0.75, 0.55);
-pedestal.rotation.x = BABYLON.Tools.ToRadians(65);
+const pedestal = BABYLON.MeshBuilder.CreatePlane("pedestal", { width: 0.9, height: 3 }, scene);
+pedestal.position = new BABYLON.Vector3(0, 0.89, 1.5);
+pedestal.rotation.x = BABYLON.Tools.ToRadians(87);
 pedestal.rotation.y = Math.PI;
 pedestal.metadata = { instrumentId: "PEDESTAL" };
 
 const pedMat = new BABYLON.StandardMaterial("pedMat", scene);
+pedMat.diffuseTexture = new BABYLON.Texture("./textures/pedestal.png", scene); 
 pedMat.diffuseColor = new BABYLON.Color3(0.16, 0.18, 0.22);
 pedestal.material = pedMat;
 
+
+
 // Zones “instruments” (petits rectangles cliquables posés sur les panneaux)
 // ECAM SD (sur main panel)
-const ecamSD = BABYLON.MeshBuilder.CreatePlane("ecamSD", { width: 0.42, height: 0.20 }, scene);
-ecamSD.position = new BABYLON.Vector3(-0.25, 1.05, 1.19);
-ecamSD.rotation.y = Math.PI;
-ecamSD.metadata = { instrumentId: "ECAM_SD" };
+// const ecamSD = BABYLON.MeshBuilder.CreatePlane("ecamSD", { width: 0.42, height: 0.20 }, scene);
+//ecamSD.position = new BABYLON.Vector3(-0.25, 1.05, 1.19);
+//ecamSD.rotation.y = Math.PI;
+//ecamSD.metadata = { instrumentId: "ECAM_SD" };
 
-const ecamMat = new BABYLON.StandardMaterial("ecamMat", scene);
-ecamMat.diffuseColor = new BABYLON.Color3(0.10, 0.35, 0.18);
-ecamSD.material = ecamMat;
+//const ecamMat = new BABYLON.StandardMaterial("ecamMat", scene);
+//ecamMat.diffuseColor = new BABYLON.Color3(0.10, 0.35, 0.18);
+//ecamSD.material = ecamMat;
 
 // ECAM E/WD
-const ecamEWD = BABYLON.MeshBuilder.CreatePlane("ecamEWD", { width: 0.42, height: 0.20 }, scene);
-ecamEWD.position = new BABYLON.Vector3(0.25, 1.05, 1.19);
-ecamEWD.rotation.y = Math.PI;
-ecamEWD.metadata = { instrumentId: "ECAM_EWD" };
+//const ecamEWD = BABYLON.MeshBuilder.CreatePlane("ecamEWD", { width: 0.42, height: 0.20 }, scene);
+//ecamEWD.position = new BABYLON.Vector3(0.25, 1.05, 1.19);
+//ecamEWD.rotation.y = Math.PI;
+//ecamEWD.metadata = { instrumentId: "ECAM_EWD" };
 
-const ewdMat = new BABYLON.StandardMaterial("ewdMat", scene);
-ewdMat.diffuseColor = new BABYLON.Color3(0.35, 0.20, 0.10);
-ecamEWD.material = ewdMat;
+//const ewdMat = new BABYLON.StandardMaterial("ewdMat", scene);
+//ewdMat.diffuseColor = new BABYLON.Color3(0.35, 0.20, 0.10);
+//ecamEWD.material = ewdMat;
 
 // MCDU (sur pedestal)
 const mcdu = BABYLON.MeshBuilder.CreatePlane("mcdu", { width: 0.35, height: 0.22 }, scene);
