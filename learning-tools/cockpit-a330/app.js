@@ -190,7 +190,7 @@ scene.onPointerObservable.add((pointerInfo) => {
     if (pick?.hit && pick.pickedMesh?.metadata?.instrumentId) {
       lastHover = pick.pickedMesh;
       if (lastHover.material) {
-        lastHover.material.emissiveColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+        lastHover.material.emissiveColor = new BABYLON.Color3(0.05, 0.05, 0.05);
       }
     }
   }
