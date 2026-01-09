@@ -53,7 +53,7 @@ const scene = new BABYLON.Scene(engine);
 scene.clearColor = new BABYLON.Color4(0.45, 0.75, 0.90, 1.0);
 
 // Lumières
-const hemi = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(20,20, 30), scene);
+const hemi = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(30,30, 30), scene);
 hemi.intensity = 6;
 
 // Caméra : ArcRotate = pivot simple (parfait pour ton mode “tourner la tête”)
