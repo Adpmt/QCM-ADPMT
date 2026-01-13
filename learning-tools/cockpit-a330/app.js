@@ -53,8 +53,8 @@ const scene = new BABYLON.Scene(engine);
 scene.clearColor = new BABYLON.Color4(0.45, 0.75, 0.90, 1.0);
 
 // Lumières
-const hemi = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(20,20, 30), scene);
-hemi.intensity = 5;
+const hemi = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(30,30, 30), scene);
+hemi.intensity = 6;
 
 // Caméra : ArcRotate = pivot simple (parfait pour ton mode “tourner la tête”)
 const camera = new BABYLON.ArcRotateCamera(
@@ -67,8 +67,10 @@ const camera = new BABYLON.ArcRotateCamera(
 );
 
 camera.attachControl(canvas, true);
+camera.angularSensibilityX = 1000 ;
+camera.angularSensibilityY = 1000;
 camera.panningSensibility = 0;
-camera.wheelPrecision = 250;
+camera.wheelPrecision = 200;
 
 
 // Limites de rotation (évite de regarder derrière/sol/plafond)
