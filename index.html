@@ -392,46 +392,36 @@ qcms.forEach(qcm => {
 <script>
 (() => {
   const plane = document.getElementById('planeCursor');
-  const trail = document.getElementById('jetTrail');
-
-  let x = 0, y = 0;      // position lissée avion
-  let tx = 0, ty = 0;   // position réelle souris
-
-  const SMOOTH = 0.22;
-  const HALF = 20; // moitié de la taille du SVG
-
-(() => {
-  const plane = document.getElementById('planeCursor');
 
   let x = 0, y = 0;
   let tx = 0, ty = 0;
 
   const SMOOTH = 0.22;
-
-  // ✅ Mets HALF = (taille du curseur)/2
-  // Ex: si width/height = 40px => HALF = 20
-  const HALF = 20;
+  const HALF = 20; // largeur / 2
 
   let active = false;
 
   function setTarget(px, py) {
-    tx = px; ty = py;
+    tx = px;
+    ty = py;
     if (!active) {
       active = true;
       plane.style.opacity = '1';
     }
   }
 
-  // Desktop (souris)
-  window.addEventListener('mousemove', (e) => setTarget(e.clientX, e.clientY), { passive: true });
+  // Desktop
+  window.addEventListener('mousemove', e => {
+    setTarget(e.clientX, e.clientY);
+  }, { passive: true });
 
-  // Mobile (doigt)
-  window.addEventListener('touchstart', (e) => {
+  // Mobile
+  window.addEventListener('touchstart', e => {
     const t = e.touches[0];
     if (t) setTarget(t.clientX, t.clientY);
   }, { passive: true });
 
-  window.addEventListener('touchmove', (e) => {
+  window.addEventListener('touchmove', e => {
     const t = e.touches[0];
     if (t) setTarget(t.clientX, t.clientY);
   }, { passive: true });
@@ -445,34 +435,6 @@ qcms.forEach(qcm => {
     x += (tx - x) * SMOOTH;
     y += (ty - y) * SMOOTH;
 
-    // angle avion -> cible (marche aussi sur mobile)
-    const dx = tx - x;
-    const dy = ty - y;
-    const angle = Math.atan2(dy, dx) * 180 / Math.PI;
-
-    plane.style.transform =
-      `translate3d(${x - HALF}px, ${y - HALF}px, 0) rotate(${angle}deg)`;
-
-    requestAnimationFrame(raf);
-  }
-  requestAnimationFrame(raf);
-
-  // si on sort de la fenêtre (desktop)
-  window.addEventListener('mouseleave', () => plane.style.opacity = '0');
-  window.addEventListener('mouseenter', () => { if (active) plane.style.opacity = '1'; });
-})();
-
-  window.addEventListener('mousemove', e => {
-    tx = e.clientX;
-    ty = e.clientY;
-  }, { passive: true });
-
-  function raf() {
-    // Lissage position
-    x += (tx - x) * SMOOTH;
-    y += (ty - y) * SMOOTH;
-
-    // 👉 ANGLE = avion → curseur (même à l'arrêt)
     const dx = tx - x;
     const dy = ty - y;
     const angle = Math.atan2(dy, dx) * 180 / Math.PI + 50
@@ -480,23 +442,16 @@ qcms.forEach(qcm => {
     plane.style.transform =
       `translate3d(${x - HALF}px, ${y - HALF}px, 0) rotate(${angle}deg)`;
 
-
-
-
     requestAnimationFrame(raf);
   }
   requestAnimationFrame(raf);
 
   window.addEventListener('mouseleave', () => {
     plane.style.opacity = '0';
-    trail.style.opacity = '0';
-  });
-  window.addEventListener('mouseenter', () => {
-    plane.style.opacity = '1';
-    trail.style.opacity = '.85';
   });
 })();
 </script>
+
 <style id="force-hide-cursor">
   html, body { cursor: none !important; }
 
