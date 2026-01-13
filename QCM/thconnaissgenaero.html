@@ -114,12 +114,15 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
 @media (max-width:640px){
   .grid{grid-template-columns:1fr}
 }
+
 </style>
 </head>
 <body>
+  
   <div class="card main">
     <div class="row" style="justify-content:space-between">
       <h1>✈️ Th Connaissances Générales des Aéronefs</h1>
+      
       <button id="themeToggle" class="btn-gray" title="Changer de thème">🌙/☀️</button>
     <button id="homeBtn" class="btn-gray" title="Retour à l'accueil">🏠 Accueil</button>
     </div>
@@ -128,7 +131,7 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
     window.location.href = "https://adpmt.github.io/QCM-ADPMT/";
     });
     </script>
-
+    
     <!-- Outils -->
     <div class="row">
       <div style="min-width:160px">
@@ -160,11 +163,12 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
         <button id="pauseBtn" class="btn-gray" disabled>Pause</button>
         <button id="stopBtn" class="btn-gray" disabled>Stop</button>
         <button id="resumeBtn" class="btn-gray" style="display:none">Reprendre</button>
+        <button id="showSummaryBtn" class="btn"style="display:none;margin-top:8px">  📊 Afficher le résumé</button>
       </div>
     </div>
 
     <!-- Résumé -->
-    <div id="summaryCard" class="card" style="margin-top:10px;display:none">
+    <div id="summaryCard" class="card" style="margin-top:10px;display:block">
       <h3 style="margin:0 0 6px">Résumé</h3>
       <div id="summaryStats" class="muted"></div>
       <div id="summaryList" class="muted" style="height:220px;overflow:auto;margin-top:8px"></div>
@@ -235,393 +239,50 @@ const pseudoInput=$('#pseudoInput'); pseudoInput.value=localStorage.getItem(LS_P
 pseudoInput.addEventListener('change',()=>localStorage.setItem(LS_PSEUDO,pseudoInput.value.trim()));
 
 // ====== Questions (exemple) — remplace/complète par ta liste complète si besoin
-let QUESTIONS = [
-  { "q": "Quelle est la définition d’un aéronef selon l’OACI ?",
-    "choices": [
-      "Appareil capable de s’élever, se maintenir et se déplacer dans l’atmosphère",
-      "Appareil capable de voler uniquement par réaction",
-      "Véhicule spatial autonome",
-      "Appareil plus léger que l’air uniquement"
-    ],
-    "answer": 0 },
-
-  { "q": "Le mot « avion » vient du latin :",
-    "choices": [
-      "Avis, signifiant « vent »",
-      "Avis, signifiant « oiseau »",
-      "Avior, signifiant « voler »",
-      "Avia, signifiant « air »"
-    ],
-    "answer": 1 },
-
-  { "q": "L’OACI dépend :",
-    "choices": [
-      "De la DGAC",
-      "De l’OTAN",
-      "Des Nations Unies",
-      "De l’Union Européenne"
-    ],
-    "answer": 2 },
-
-  { "q": "Les aéronefs « plus lourds que l’air » sont appelés :",
-    "choices": [
-      "Aérospatiaux",
-      "Aérostats",
-      "Ballons",
-      "Aérodynes"
-    ],
-    "answer": 3 },
-
-  { "q": "La sustentation des aérostats est assurée par :",
-    "choices": [
-      "La poussée d’Archimède",
-      "La portance",
-      "La poussée du moteur",
-      "L’effet de sol"
-    ],
-    "answer": 0 },
-
-  { "q": "Parmi les aérodynes, on trouve :",
-    "choices": [
-      "Ballons et dirigeables",
-      "Planeurs et avions",
-      "Fusées et satellites",
-      "Missiles et sondes"
-    ],
-    "answer": 1 },
-
-  { "q": "Un dirigeable est :",
-    "choices": [
-      "Un aérodyne",
-      "Un aérospatial",
-      "Un aéronef plus léger que l’air",
-      "Un aéronef sans moteur"
-    ],
-    "answer": 2 },
-
-  { "q": "La cellule d’un avion comprend :",
-    "choices": [
-      "Cockpit, trains, réacteurs",
-      "Gouvernes, moteurs, trains",
-      "Moteur, ailes, hélice",
-      "Fuselage, ailes, empennage"
-    ],
-    "answer": 3 },
-
-  { "q": "Quelle partie de l’avion génère la portance principale ?",
-    "choices": [
-      "Les ailes",
-      "Le fuselage",
-      "L’empennage",
-      "Le train d’atterrissage"
-    ],
-    "answer": 0 },
-
-  { "q": "Les « winglets » servent à :",
-    "choices": [
-      "Augmenter la consommation",
-      "Réduire la traînée induite",
-      "Augmenter la traînée",
-      "Freiner l’avion"
-    ],
-    "answer": 1 },
-
-  { "q": "L’allongement d’une aile est le rapport :",
-    "choices": [
-      "Corde / envergure",
-      "Envergure / surface",
-      "Envergure / corde",
-      "Surface / envergure"
-    ],
-    "answer": 2 },
-
-  { "q": "Un allongement élevé permet :",
-    "choices": [
-      "D’augmenter la portance instantanée",
-      "De réduire la stabilité longitudinale",
-      "D’augmenter la traînée induite",
-      "De réduire la traînée induite"
-    ],
-    "answer": 3 },
-
-  { "q": "Les becs de bord d’attaque servent à :",
-    "choices": [
-      "Augmenter la portance",
-      "Accroître la vitesse",
-      "Réduire la traînée",
-      "Freiner l’avion"
-    ],
-    "answer": 0 },
-
-  { "q": "Les volets sont situés :",
-    "choices": [
-      "Derrière la vitre",
-      "Sur le bord de fuite",
-      "Sur la dérive",
-      "Sur le bord d’attaque"
-    ],
-    "answer": 1 },
-
-  { "q": "Les aérofreins servent à :",
-    "choices": [
-      "Accroître la portance",
-      "Diminuer la poussée",
-      "Diminuer la vitesse",
-      "Stabiliser la portance"
-    ],
-    "answer": 2 },
-
-  { "q": "Les spoilers sont utilisés pour :",
-    "choices": [
-      "Réduire le roulis",
-      "Améliorer la poussée",
-      "Augmenter la portance",
-      "Détruire la portance"
-    ],
-    "answer": 3 },
-
-  { "q": "Après l’atterrissage, les spoilers permettent :",
-    "choices": [
-      "De plaquer l’avion au sol",
-      "De réduire la traînée",
-      "D’augmenter la portance",
-      "De réduire la portance des freins"
-    ],
-    "answer": 0 },
-
-  { "q": "Les éléments internes d’une aile sont :",
-    "choices": [
-      "Poutres, sièges, planchers",
-      "Nervures, longerons, lisses",
-      "Clapets, vérins, freins",
-      "Tuyères, rivets, hélices"
-    ],
-    "answer": 1 },
-
-  { "q": "Le fuselage est constitué notamment de :",
-    "choices": [
-      "Longerons et becs",
-      "Spoilers et freins",
-      "Cadres et lisses",
-      "Ailerons et volets"
-    ],
-    "answer": 2 },
-
-  { "q": "L’empennage T se caractérise par :",
-    "choices": [
-      "La dérive en bas du fuselage",
-      "Un seul plan de commande",
-      "Les stabilisateurs latéraux",
-      "Le plan horizontal placé en haut de la dérive"
-    ],
-    "answer": 3 },
-
-  { "q": "Le train d’atterrissage tricycle classique comporte :",
-    "choices": [
-      "Une roue avant, deux principales",
-      "Deux roues avant, une arrière",
-      "Deux trains principaux seulement",
-      "Trois roues alignées"
-    ],
-    "answer": 0 },
-
-  { "q": "Un aéronef pivote autour de :",
-    "choices": [
-      "Un seul axe",
-      "Trois axes principaux",
-      "Deux axes principaux",
-      "Quatre axes"
-    ],
-    "answer": 1 },
-
-  { "q": "L’axe de tangage passe par :",
-    "choices": [
-      "Le train principal",
-      "L’empennage",
-      "Le centre de gravité",
-      "Le nez de l’avion"
-    ],
-    "answer": 2 },
-
-  { "q": "Le mouvement autour de l’axe de tangage modifie :",
-    "choices": [
-      "La direction",
-      "La vitesse",
-      "L’inclinaison",
-      "L’assiette"
-    ],
-    "answer": 3 },
-
-  { "q": "L’axe de roulis correspond à :",
-    "choices": [
-      "Une rotation autour de l’axe longitudinal (nez–queue)",
-      "Une rotation autour du train avant",
-      "Une translation longitudinale",
-      "Une rotation autour de la dérive"
-    ],
-    "answer": 0 },
-
-  { "q": "L’axe de lacet est commandé par :",
-    "choices": [
-      "Le manche",
-      "Les palonniers",
-      "La manette de gaz",
-      "Les freins"
-    ],
-    "answer": 1 },
-
-  { "q": "Une action sur les palonniers agit sur :",
-    "choices": [
-      "Les volets",
-      "Les ailerons",
-      "La gouverne de direction",
-      "La gouverne de profondeur"
-    ],
-    "answer": 2 },
-
-  { "q": "La gouverne de profondeur contrôle :",
-    "choices": [
-      "Le roulis",
-      "Le lacet",
-      "La vitesse",
-      "Le tangage"
-    ],
-    "answer": 3 },
-
-  { "q": "Les ailerons contrôlent :",
-    "choices": [
-      "Le roulis",
-      "Le tangage",
-      "Le lacet",
-      "Le freinage"
-    ],
-    "answer": 0 },
-
-  { "q": "La gouverne de direction contrôle :",
-    "choices": [
-      "Le roulis",
-      "Le lacet",
-      "Le tangage",
-      "La portance"
-    ],
-    "answer": 1 },
-
-  { "q": "Le manche à droite produit :",
-    "choices": [
-      "Aucun effet",
-      "Aileron droit baissé",
-      "Aileron droit levé",
-      "Aileron gauche levé"
-    ],
-    "answer": 2 },
-
-  { "q": "Le manche en avant provoque :",
-    "choices": [
-      "Une montée",
-      "Une assiette à cabrer",
-      "Une portance accrue",
-      "Une assiette à piquer"
-    ],
-    "answer": 3 },
-
-  { "q": "Le palonnier à gauche provoque :",
-    "choices": [
-      "Dérive braquée à gauche",
-      "Aileron droit levé",
-      "Volet droit sorti",
-      "Dérive braquée à droite"
-    ],
-    "answer": 0 },
-
-  { "q": "En virage, les spoilers peuvent être :",
-    "choices": [
-      "Déployés symétriquement",
-      "Déployés sur une seule aile",
-      "Inactifs",
-      "Remplacés par les volets"
-    ],
-    "answer": 1 },
-
-  { "q": "Les commandes de vol principales sont :",
-    "choices": [
-      "Freins, spoilers",
-      "Aérofreins, volets",
-      "Manche, palonnier",
-      "Trains, spoilers"
-    ],
-    "answer": 2 },
-
-  { "q": "Les effets primaires regroupent :",
-    "choices": [
-      "Portance, poussée, traînée",
-      "Traînée, gravité, inertie",
-      "Cabreur, piqué, lacet inverse",
-      "Tangage, roulis, lacet"
-    ],
-    "answer": 3 },
-
-  { "q": "Le mouvement de roulis est dû à :",
-    "choices": [
-      "Une portance asymétrique des ailes",
-      "Une poussée du moteur",
-      "Une variation du vent",
-      "Une déformation du fuselage"
-    ],
-    "answer": 0 },
-
-  { "q": "Le mouvement de lacet déplace l’avion :",
-    "choices": [
-      "Vers le haut ou le bas",
-      "Vers la gauche ou la droite",
-      "Autour de son axe longitudinal",
-      "Autour du centre de portance"
-    ],
-    "answer": 1 },
-
-  { "q": "Le mouvement de tangage modifie :",
-    "choices": [
-      "L’envergure",
-      "L’altitude uniquement",
-      "L’orientation du nez de l’avion",
-      "La poussée"
-    ],
-    "answer": 2 },
-
-  { "q": "Sur un Airbus A330, les commandes de vol sont :",
-    "choices": [
-      "Mécaniques",
-      "Pneumatiques",
-      "Purement manuelles",
-      "Électriques et hydrauliques (fly-by-wire)"
-    ],
-    "answer": 3 },
-
-  { "q": "Qu’est-ce que le Pitch (Tangage) ?",
-    "choices": [
-      "La rotation autour de l’axe transversal (aile à aile)",
-      "La rotation autour de l’axe longitudinal (avant-arrière)",
-      "La rotation autour de l’axe vertical",
-      "Une brioche moelleuse"
-    ],
-    "answer": 0 },
-
-  { "q": "Qu’est-ce que le Yaw (Lacet) ?",
-    "choices": [
-      "La rotation autour de l’axe transversal",
-      "La rotation autour de l’axe vertical",
-      "La rotation autour de l’axe longitudinal",
-      "Un mouvement de cabrage"
-    ],
-    "answer": 1 },
-
-  { "q": "Qu’est-ce que le Roll (Roulis) ?",
-    "choices": [
-      "La rotation autour de l’axe transversal",
-      "La rotation autour de l’axe vertical",
-      "La rotation autour de l’axe longitudinal",
-      "Un mouvement de descente"
-    ],
-    "answer": 2 }
+ let QUESTIONS = [
+{ "q":"Quelle est la définition d’un aéronef selon l’OACI ?","choices":["Appareil capable de s’élever, se maintenir et se déplacer dans l’atmosphère","Appareil capable de voler uniquement par réaction","Véhicule spatial autonome","Appareil plus léger que l’air uniquement"],"answer":0 },
+{ "q":"Le mot « avion » vient du latin :","choices":["Avis, signifiant « vent »","Avis, signifiant « oiseau »","Avior, signifiant « voler »","Avia, signifiant « air »"],"answer":1 },
+{ "q":"L’OACI dépend :","choices":["De la DGAC","De l’OTAN","Des Nations Unies","De l’Union Européenne"],"answer":2 },
+{ "q":"Les aéronefs « plus lourds que l’air » sont appelés :","choices":["Aérospatiaux","Aérostats","Ballons","Aérodynes"],"answer":3 },
+{ "q":"La sustentation des aérostats est assurée par :","choices":["La poussée d’Archimède","La portance","La poussée du moteur","L’effet de sol"],"answer":0 },
+{ "q":"Parmi les aérodynes, on trouve :","choices":["Ballons et dirigeables","Planeurs et avions","Fusées et satellites","Missiles et sondes"],"answer":1 },
+{ "q":"Un dirigeable est :","choices":["Un aérodyne","Un aérospatial","Un aéronef plus léger que l’air","Un aéronef sans moteur"],"answer":2 },
+{ "q":"La cellule d’un avion comprend :","choices":["Cockpit, trains, réacteurs","Gouvernes, moteurs, trains","Moteur, ailes, hélice","Fuselage, ailes, empennage"],"answer":3 },
+{ "q":"Quelle partie de l’avion génère la portance principale ?","choices":["Les ailes","Le fuselage","L’empennage","Le train d’atterrissage"],"answer":0 },
+{ "q":"Les « winglets » servent à :","choices":["Augmenter la consommation","Réduire la traînée induite","Augmenter la traînée","Freiner l’avion"],"answer":1 },
+{ "q":"L’allongement d’une aile est le rapport :","choices":["Corde / envergure","Envergure / surface","Envergure / corde","Surface / envergure"],"answer":2 },
+{ "q":"Un allongement élevé permet :","choices":["D’augmenter la portance instantanée","De réduire la stabilité longitudinale","D’augmenter la traînée induite","De réduire la traînée induite"],"answer":3 },
+{ "q":"Les becs de bord d’attaque servent à :","choices":["Augmenter la portance","Accroître la vitesse","Réduire la traînée","Freiner l’avion"],"answer":0 },
+{ "q":"Les volets sont situés :","choices":["Derrière la vitre","Sur le bord de fuite","Sur la dérive","Sur le bord d’attaque"],"answer":1 },
+{ "q":"Les aérofreins servent à :","choices":["Accroître la portance","Diminuer la poussée","Diminuer la vitesse","Stabiliser la portance"],"answer":2 },
+{ "q":"Les spoilers sont utilisés pour :","choices":["Réduire le roulis","Améliorer la poussée","Augmenter la portance","Détruire la portance"],"answer":3 },
+{ "q":"Après l’atterrissage, les spoilers permettent :","choices":["De plaquer l’avion au sol","De réduire la traînée","D’augmenter la portance","De réduire la portance des freins"],"answer":0 },
+{ "q":"Les éléments internes d’une aile sont :","choices":["Poutres, sièges, planchers","Nervures, longerons, lisses","Clapets, vérins, freins","Tuyères, rivets, hélices"],"answer":1 },
+{ "q":"Le fuselage est constitué notamment de :","choices":["Longerons et becs","Spoilers et freins","Cadres et lisses","Ailerons et volets"],"answer":2 },
+{ "q":"L’empennage T se caractérise par :","choices":["La dérive en bas du fuselage","Un seul plan de commande","Les stabilisateurs latéraux","Le plan horizontal placé en haut de la dérive"],"answer":3 },
+{ "q":"Le train d’atterrissage tricycle classique comporte :","choices":["Une roue avant, deux principales","Deux roues avant, une arrière","Deux trains principaux seulement","Trois roues alignées"],"answer":0 },
+{ "q":"Un aéronef pivote autour de :","choices":["Un seul axe","Trois axes principaux","Deux axes principaux","Quatre axes"],"answer":1 },
+{ "q":"L’axe de tangage passe par :","choices":["Le train principal","L’empennage","Le centre de gravité","Le nez de l’avion"],"answer":2 },
+{ "q":"Le mouvement autour de l’axe de tangage modifie :","choices":["La direction","La vitesse","L’inclinaison","L’assiette"],"answer":3 },
+{ "q":"L’axe de roulis correspond à :","choices":["Une rotation autour de l’axe longitudinal (nez–queue)","Une rotation autour du train avant","Une translation longitudinale","Une rotation autour de la dérive"],"answer":0 },
+{ "q":"L’axe de lacet est commandé par :","choices":["Le manche","Les palonniers","La manette de gaz","Les freins"],"answer":1 },
+{ "q":"Une action sur les palonniers agit sur :","choices":["Les volets","Les ailerons","La gouverne de direction","La gouverne de profondeur"],"answer":2 },
+{ "q":"La gouverne de profondeur contrôle :","choices":["Le roulis","Le lacet","La vitesse","Le tangage"],"answer":3 },
+{ "q":"Les ailerons contrôlent :","choices":["Le roulis","Le tangage","Le lacet","Le freinage"],"answer":0 },
+{ "q":"La gouverne de direction contrôle :","choices":["Le roulis","Le lacet","Le tangage","La portance"],"answer":1 },
+{ "q":"Le manche à droite produit :","choices":["Aucun effet","Aileron droit baissé","Aileron droit levé","Aileron gauche levé"],"answer":2 },
+{ "q":"Le manche en avant provoque :","choices":["Une montée","Une assiette à cabrer","Une portance accrue","Une assiette à piquer"],"answer":3 },
+{ "q":"Le palonnier à gauche provoque :","choices":["Dérive braquée à gauche","Aileron droit levé","Volet droit sorti","Dérive braquée à droite"],"answer":0 },
+{ "q":"En virage, les spoilers peuvent être :","choices":["Déployés symétriquement","Déployés sur une seule aile","Inactifs","Remplacés par les volets"],"answer":1 },
+{ "q":"Les commandes de vol principales sont :","choices":["Freins, spoilers","Aérofreins, volets","Manche, palonnier","Trains, spoilers"],"answer":2 },
+{ "q":"Les effets primaires regroupent :","choices":["Portance, poussée, traînée","Traînée, gravité, inertie","Cabreur, piqué, lacet inverse","Tangage, roulis, lacet"],"answer":3 },
+{ "q":"Le mouvement de roulis est dû à :","choices":["Une portance asymétrique des ailes","Une poussée du moteur","Une variation du vent","Une déformation du fuselage"],"answer":0 },
+{ "q":"Le mouvement de lacet déplace l’avion :","choices":["Vers le haut ou le bas","Vers la gauche ou la droite","Autour de son axe longitudinal","Autour du centre de portance"],"answer":1 },
+{ "q":"Le mouvement de tangage modifie :","choices":["L’envergure","L’altitude uniquement","L’orientation du nez de l’avion","La poussée"],"answer":2 },
+{ "q":"Sur un Airbus A330, les commandes de vol sont :","choices":["Mécaniques","Pneumatiques","Purement manuelles","Électriques et hydrauliques (fly-by-wire)"],"answer":3 },
+{ "q":"Qu’est-ce que le Pitch (Tangage) ?","choices":["La rotation autour de l’axe transversal (aile à aile)","La rotation autour de l’axe longitudinal (avant-arrière)","La rotation autour de l’axe vertical","Une brioche moelleuse"],"answer":0 },
+{ "q":"Qu’est-ce que le Yaw (Lacet) ?","choices":["La rotation autour de l’axe transversal","La rotation autour de l’axe vertical","La rotation autour de l’axe longitudinal","Un mouvement de cabrage"],"answer":1 },
+{ "q":"Qu’est-ce que le Roll (Roulis) ?","choices":["La rotation autour de l’axe transversal","La rotation autour de l’axe vertical","La rotation autour de l’axe longitudinal","Un mouvement de descente"],"answer":2 }
 ];
 
 // 👉 Tu peux coller ici ta grosse liste complète : le code fonctionne pareil.
@@ -732,6 +393,7 @@ function onSelect(idx, btn){
     correctIndex:curQ.answer, pickedIndex:pickedOriginal,
     correct:(idx===goodShuffled), timedOut:false
   };
+  buildSummary(); // ✅ update live
 
   if(mode==='TRAIN'){
     highlightGood();
@@ -757,6 +419,7 @@ function onTimeout(){
     index:i, q:curQ.q, choices:curQ.choices.slice(),
     correctIndex:curQ.answer, pickedIndex:null, correct:false, timedOut:true
   };
+  buildSummary(); // ✅ update live
   if(mode==='TRAIN'){
     highlightGood();
     feedbackEl.innerHTML = `<span class="muted"><b>Temps écoulé.</b></span>`;
@@ -782,7 +445,9 @@ function resetState(){
   scoreEl.textContent='0'; clearTick(); timerEl.textContent='0';
   progressBar.style.width='0%'; progressTxt.textContent='Question 0/0';
   qEl.textContent='Clique sur Démarrer'; choicesEl.innerHTML=''; feedbackEl.textContent='';
-  $('#summaryCard').style.display='none';
+  $('#summaryCard').style.display='block';
+  $('#summaryStats').innerHTML = '<span class="muted">En attente…</span>';
+  $('#summaryList').innerHTML = '<span class="muted">Aucune réponse pour le moment.</span>';
 }
 function startGame(fromSnapshot=false){
   mode = 'TRAIN';
@@ -802,6 +467,8 @@ $('#pauseBtn').onclick=()=>{
   saveSnapshot();
 };
 $('#stopBtn').onclick=()=> finishGame();
+$('#summaryCard').style.display = 'block';
+$('#showSummaryBtn').style.display = 'none';
 
 // ====== Résumé + enregistrement du score
 function recordFinalScore(){
@@ -839,18 +506,37 @@ function recordFinalScore(){
 }
 
 function buildSummary(){
-  const total=filteredQuestions.length;
-  let ok=0, bad=0, to=0;
-  const lines = answersLog.map((r,idx)=>{
-    const corr=r.choices[r.correctIndex];
-    const user = r.pickedIndex===null ? '(aucune/temps)' : r.choices[r.pickedIndex];
-    if(r.correct) ok++; else if(r.timedOut) to++; else bad++;
-    const cls=r.correct?'ok':'bad';
-    return `<div class="${cls}">Q${idx+1}. ${r.q}<div class="small">Ta réponse: <b>${user}</b> — Corr: <b>${corr}</b></div></div>`;
-  }).join('');
-  $('#summaryStats').innerHTML = `Score: <b>${score}</b> / ${total} &nbsp; | &nbsp; OK: <span class="ok">${ok}</span> – Faux: <span class="bad">${bad}</span> – Temps: <span class="bad">${to}</span>`;
-  $('#summaryList').innerHTML = lines || '<span class="muted">Rien à afficher</span>';
+  const total = filteredQuestions.length || 0;
+
+  let ok=0, bad=0, to=0, answered=0;
+
+  const lines = (answersLog || [])
+    .filter(r => r) // uniquement les questions déjà loggées
+    .map((r, idx)=> {
+      answered++;
+
+      const corr = r.choices[r.correctIndex];
+      const user = r.pickedIndex===null ? '(aucune/temps)' : r.choices[r.pickedIndex];
+
+      if(r.correct) ok++; else if(r.timedOut) to++; else bad++;
+
+      const cls = r.correct ? 'ok' : 'bad';
+      return `<div class="${cls}">
+        Q${r.index+1}. ${r.q}
+        <div class="small">Ta réponse: <b>${user}</b> — Corr: <b>${corr}</b></div>
+      </div>`;
+    }).join('');
+
+  $('#summaryStats').innerHTML =
+    `Score: <b>${score}</b> / ${total}
+     &nbsp; | &nbsp; Répondu: <b>${answered}</b> / ${total}
+     &nbsp; | &nbsp; OK: <span class="ok">${ok}</span>
+     – Faux: <span class="bad">${bad}</span>
+     – Temps: <span class="bad">${to}</span>`;
+
+  $('#summaryList').innerHTML = lines || '<span class="muted">Aucune réponse pour le moment.</span>';
 }
+
 function finishGame(){
   if(!running) return;
   clearTick(); running=false; paused=false;
@@ -866,7 +552,17 @@ function finishGame(){
   localStorage.removeItem(LS_SNAPSHOT);
 }
 $('#printSummary').onclick=()=>window.print();
-$('#closeSummary').onclick=()=>$('#summaryCard').style.display='none';
+$('#closeSummary').onclick = () => {
+  $('#summaryCard').style.display = 'none';
+  $('#showSummaryBtn').style.display = 'inline-block';
+};
+$('#showSummaryBtn').onclick = () => {
+  $('#summaryCard').style.display = 'block';
+  $('#showSummaryBtn').style.display = 'none';
+};
+$('#summaryCard').style.display = 'block';
+$('#showSummaryBtn').style.display = 'none';
+
 
 // ====== Snapshot (reprendre une partie)
 function saveSnapshot(){
@@ -888,6 +584,7 @@ function applySnapshot(s){ mode=s.mode; perQ=s.perQ; i=s.i; score=s.score; filte
 
 (function boot(){ progressTxt.textContent='Question 0/0'; timerEl.textContent='0'; renderScoreTable(); drawChart(); })();
 </script>
+
 </body>
 </html>
 

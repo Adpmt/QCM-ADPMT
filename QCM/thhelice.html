@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Th Hélice</title>
+<title>Hélice</title>
 <style>
 :root{
   --bg:#0f172a;
@@ -114,12 +114,15 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
 @media (max-width:640px){
   .grid{grid-template-columns:1fr}
 }
+
 </style>
 </head>
 <body>
+  
   <div class="card main">
     <div class="row" style="justify-content:space-between">
-      <h1>✈️ Th Hélice</h1>
+      <h1>✈️ Hélice</h1>
+      
       <button id="themeToggle" class="btn-gray" title="Changer de thème">🌙/☀️</button>
     <button id="homeBtn" class="btn-gray" title="Retour à l'accueil">🏠 Accueil</button>
     </div>
@@ -128,6 +131,7 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
     window.location.href = "https://adpmt.github.io/QCM-ADPMT/";
     });
     </script>
+    
     <!-- Outils -->
     <div class="row">
       <div style="min-width:160px">
@@ -159,11 +163,12 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
         <button id="pauseBtn" class="btn-gray" disabled>Pause</button>
         <button id="stopBtn" class="btn-gray" disabled>Stop</button>
         <button id="resumeBtn" class="btn-gray" style="display:none">Reprendre</button>
+        <button id="showSummaryBtn" class="btn"style="display:none;margin-top:8px">  📊 Afficher le résumé</button>
       </div>
     </div>
 
     <!-- Résumé -->
-    <div id="summaryCard" class="card" style="margin-top:10px;display:none">
+    <div id="summaryCard" class="card" style="margin-top:10px;display:block">
       <h3 style="margin:0 0 6px">Résumé</h3>
       <div id="summaryStats" class="muted"></div>
       <div id="summaryList" class="muted" style="height:220px;overflow:auto;margin-top:8px"></div>
@@ -276,7 +281,6 @@ let QUESTIONS = [
   { "q": "Le tube de transfert d’huile :", "choices": ["Mesure la température extérieure", "Alimente le circuit carburant", "Transmet l’air conditionné", "Amène l’huile à travers les pièces tournantes"], "answer": 3 },
   { "q": "On dit qu’une hélice est une vis dans l’air car :", "choices": ["Elle ne tourne pas vraiment", "Elle avance d’une distance fixe par tour : son pas théorique", "Chaque pale est creuse", "Le filetage est identique à une vis"], "answer": 1 }
 ];
-
 // 👉 Tu peux coller ici ta grosse liste complète : le code fonctionne pareil.
 
 // ====== Scores (stock 30, affichage 10)
@@ -385,6 +389,7 @@ function onSelect(idx, btn){
     correctIndex:curQ.answer, pickedIndex:pickedOriginal,
     correct:(idx===goodShuffled), timedOut:false
   };
+  buildSummary(); // ✅ update live
 
   if(mode==='TRAIN'){
     highlightGood();
@@ -410,6 +415,7 @@ function onTimeout(){
     index:i, q:curQ.q, choices:curQ.choices.slice(),
     correctIndex:curQ.answer, pickedIndex:null, correct:false, timedOut:true
   };
+  buildSummary(); // ✅ update live
   if(mode==='TRAIN'){
     highlightGood();
     feedbackEl.innerHTML = `<span class="muted"><b>Temps écoulé.</b></span>`;
@@ -435,7 +441,9 @@ function resetState(){
   scoreEl.textContent='0'; clearTick(); timerEl.textContent='0';
   progressBar.style.width='0%'; progressTxt.textContent='Question 0/0';
   qEl.textContent='Clique sur Démarrer'; choicesEl.innerHTML=''; feedbackEl.textContent='';
-  $('#summaryCard').style.display='none';
+  $('#summaryCard').style.display='block';
+  $('#summaryStats').innerHTML = '<span class="muted">En attente…</span>';
+  $('#summaryList').innerHTML = '<span class="muted">Aucune réponse pour le moment.</span>';
 }
 function startGame(fromSnapshot=false){
   mode = 'TRAIN';
@@ -455,6 +463,8 @@ $('#pauseBtn').onclick=()=>{
   saveSnapshot();
 };
 $('#stopBtn').onclick=()=> finishGame();
+$('#summaryCard').style.display = 'block';
+$('#showSummaryBtn').style.display = 'none';
 
 // ====== Résumé + enregistrement du score
 function recordFinalScore(){
@@ -492,18 +502,37 @@ function recordFinalScore(){
 }
 
 function buildSummary(){
-  const total=filteredQuestions.length;
-  let ok=0, bad=0, to=0;
-  const lines = answersLog.map((r,idx)=>{
-    const corr=r.choices[r.correctIndex];
-    const user = r.pickedIndex===null ? '(aucune/temps)' : r.choices[r.pickedIndex];
-    if(r.correct) ok++; else if(r.timedOut) to++; else bad++;
-    const cls=r.correct?'ok':'bad';
-    return `<div class="${cls}">Q${idx+1}. ${r.q}<div class="small">Ta réponse: <b>${user}</b> — Corr: <b>${corr}</b></div></div>`;
-  }).join('');
-  $('#summaryStats').innerHTML = `Score: <b>${score}</b> / ${total} &nbsp; | &nbsp; OK: <span class="ok">${ok}</span> – Faux: <span class="bad">${bad}</span> – Temps: <span class="bad">${to}</span>`;
-  $('#summaryList').innerHTML = lines || '<span class="muted">Rien à afficher</span>';
+  const total = filteredQuestions.length || 0;
+
+  let ok=0, bad=0, to=0, answered=0;
+
+  const lines = (answersLog || [])
+    .filter(r => r) // uniquement les questions déjà loggées
+    .map((r, idx)=> {
+      answered++;
+
+      const corr = r.choices[r.correctIndex];
+      const user = r.pickedIndex===null ? '(aucune/temps)' : r.choices[r.pickedIndex];
+
+      if(r.correct) ok++; else if(r.timedOut) to++; else bad++;
+
+      const cls = r.correct ? 'ok' : 'bad';
+      return `<div class="${cls}">
+        Q${r.index+1}. ${r.q}
+        <div class="small">Ta réponse: <b>${user}</b> — Corr: <b>${corr}</b></div>
+      </div>`;
+    }).join('');
+
+  $('#summaryStats').innerHTML =
+    `Score: <b>${score}</b> / ${total}
+     &nbsp; | &nbsp; Répondu: <b>${answered}</b> / ${total}
+     &nbsp; | &nbsp; OK: <span class="ok">${ok}</span>
+     – Faux: <span class="bad">${bad}</span>
+     – Temps: <span class="bad">${to}</span>`;
+
+  $('#summaryList').innerHTML = lines || '<span class="muted">Aucune réponse pour le moment.</span>';
 }
+
 function finishGame(){
   if(!running) return;
   clearTick(); running=false; paused=false;
@@ -519,7 +548,17 @@ function finishGame(){
   localStorage.removeItem(LS_SNAPSHOT);
 }
 $('#printSummary').onclick=()=>window.print();
-$('#closeSummary').onclick=()=>$('#summaryCard').style.display='none';
+$('#closeSummary').onclick = () => {
+  $('#summaryCard').style.display = 'none';
+  $('#showSummaryBtn').style.display = 'inline-block';
+};
+$('#showSummaryBtn').onclick = () => {
+  $('#summaryCard').style.display = 'block';
+  $('#showSummaryBtn').style.display = 'none';
+};
+$('#summaryCard').style.display = 'block';
+$('#showSummaryBtn').style.display = 'none';
+
 
 // ====== Snapshot (reprendre une partie)
 function saveSnapshot(){
@@ -541,6 +580,7 @@ function applySnapshot(s){ mode=s.mode; perQ=s.perQ; i=s.i; score=s.score; filte
 
 (function boot(){ progressTxt.textContent='Question 0/0'; timerEl.textContent='0'; renderScoreTable(); drawChart(); })();
 </script>
+
 </body>
 </html>
 

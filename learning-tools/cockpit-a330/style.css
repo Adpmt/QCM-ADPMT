@@ -85,7 +85,6 @@ button {
   color: rgba(255,255,255,0.92);
   padding: 8px 10px;
   border-radius: 10px;
-  cursor: pointer;
 }
 
 button:hover { background: rgba(255,255,255,0.14); }
@@ -95,4 +94,26 @@ button.secondary { opacity: 0.85; }
   margin-top: 10px;
   font-size: 13px;
   opacity: 0.75;
+}
+
+*,
+*::before,
+*::after,
+*:hover,
+*:active,
+*:focus {
+  cursor: none !important;
+}
+
+a, button, input, textarea, select, label, summary, [role="button"], [onclick] {
+  cursor: none !important;
+}
+
+/* FORCE le curseur à rester caché, même face à des cursor:pointer !important */
+:root body,
+:root body * ,
+:root body *:hover,
+:root body *:active,
+:root body *:focus {
+  cursor: none !important;
 }

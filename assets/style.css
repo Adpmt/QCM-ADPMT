@@ -64,7 +64,6 @@ h1 {
   text-decoration: none;
   font-weight: 600;
   font-size: .9rem;
-  cursor: pointer;
   display: inline-block;
 }
 
@@ -100,4 +99,12 @@ h1 {
       rgba(250, 204, 21, 0.2) 12px
     );
   box-shadow:0 0 0 2px rgba(0,0,0,0.4);
+}
+/* FORCE le curseur à rester caché, même face à des cursor:pointer !important */
+:root body,
+:root body * ,
+:root body *:hover,
+:root body *:active,
+:root body *:focus {
+  cursor: none !important;
 }

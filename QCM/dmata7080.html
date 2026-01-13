@@ -163,11 +163,12 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
         <button id="pauseBtn" class="btn-gray" disabled>Pause</button>
         <button id="stopBtn" class="btn-gray" disabled>Stop</button>
         <button id="resumeBtn" class="btn-gray" style="display:none">Reprendre</button>
+        <button id="showSummaryBtn" class="btn"style="display:none;margin-top:8px">  📊 Afficher le résumé</button>
       </div>
     </div>
 
     <!-- Résumé -->
-    <div id="summaryCard" class="card" style="margin-top:10px;display:none">
+    <div id="summaryCard" class="card" style="margin-top:10px;display:block">
       <h3 style="margin:0 0 6px">Résumé</h3>
       <div id="summaryStats" class="muted"></div>
       <div id="summaryList" class="muted" style="height:220px;overflow:auto;margin-top:8px"></div>
@@ -408,6 +409,7 @@ function onSelect(idx, btn){
     correctIndex:curQ.answer, pickedIndex:pickedOriginal,
     correct:(idx===goodShuffled), timedOut:false
   };
+  buildSummary(); // ✅ update live
 
   if(mode==='TRAIN'){
     highlightGood();
@@ -433,6 +435,7 @@ function onTimeout(){
     index:i, q:curQ.q, choices:curQ.choices.slice(),
     correctIndex:curQ.answer, pickedIndex:null, correct:false, timedOut:true
   };
+  buildSummary(); // ✅ update live
   if(mode==='TRAIN'){
     highlightGood();
     feedbackEl.innerHTML = `<span class="muted"><b>Temps écoulé.</b></span>`;
@@ -458,7 +461,9 @@ function resetState(){
   scoreEl.textContent='0'; clearTick(); timerEl.textContent='0';
   progressBar.style.width='0%'; progressTxt.textContent='Question 0/0';
   qEl.textContent='Clique sur Démarrer'; choicesEl.innerHTML=''; feedbackEl.textContent='';
-  $('#summaryCard').style.display='none';
+  $('#summaryCard').style.display='block';
+  $('#summaryStats').innerHTML = '<span class="muted">En attente…</span>';
+  $('#summaryList').innerHTML = '<span class="muted">Aucune réponse pour le moment.</span>';
 }
 function startGame(fromSnapshot=false){
   mode = 'TRAIN';
@@ -478,6 +483,8 @@ $('#pauseBtn').onclick=()=>{
   saveSnapshot();
 };
 $('#stopBtn').onclick=()=> finishGame();
+$('#summaryCard').style.display = 'block';
+$('#showSummaryBtn').style.display = 'none';
 
 // ====== Résumé + enregistrement du score
 function recordFinalScore(){
@@ -515,18 +522,37 @@ function recordFinalScore(){
 }
 
 function buildSummary(){
-  const total=filteredQuestions.length;
-  let ok=0, bad=0, to=0;
-  const lines = answersLog.map((r,idx)=>{
-    const corr=r.choices[r.correctIndex];
-    const user = r.pickedIndex===null ? '(aucune/temps)' : r.choices[r.pickedIndex];
-    if(r.correct) ok++; else if(r.timedOut) to++; else bad++;
-    const cls=r.correct?'ok':'bad';
-    return `<div class="${cls}">Q${idx+1}. ${r.q}<div class="small">Ta réponse: <b>${user}</b> — Corr: <b>${corr}</b></div></div>`;
-  }).join('');
-  $('#summaryStats').innerHTML = `Score: <b>${score}</b> / ${total} &nbsp; | &nbsp; OK: <span class="ok">${ok}</span> – Faux: <span class="bad">${bad}</span> – Temps: <span class="bad">${to}</span>`;
-  $('#summaryList').innerHTML = lines || '<span class="muted">Rien à afficher</span>';
+  const total = filteredQuestions.length || 0;
+
+  let ok=0, bad=0, to=0, answered=0;
+
+  const lines = (answersLog || [])
+    .filter(r => r) // uniquement les questions déjà loggées
+    .map((r, idx)=> {
+      answered++;
+
+      const corr = r.choices[r.correctIndex];
+      const user = r.pickedIndex===null ? '(aucune/temps)' : r.choices[r.pickedIndex];
+
+      if(r.correct) ok++; else if(r.timedOut) to++; else bad++;
+
+      const cls = r.correct ? 'ok' : 'bad';
+      return `<div class="${cls}">
+        Q${r.index+1}. ${r.q}
+        <div class="small">Ta réponse: <b>${user}</b> — Corr: <b>${corr}</b></div>
+      </div>`;
+    }).join('');
+
+  $('#summaryStats').innerHTML =
+    `Score: <b>${score}</b> / ${total}
+     &nbsp; | &nbsp; Répondu: <b>${answered}</b> / ${total}
+     &nbsp; | &nbsp; OK: <span class="ok">${ok}</span>
+     – Faux: <span class="bad">${bad}</span>
+     – Temps: <span class="bad">${to}</span>`;
+
+  $('#summaryList').innerHTML = lines || '<span class="muted">Aucune réponse pour le moment.</span>';
 }
+
 function finishGame(){
   if(!running) return;
   clearTick(); running=false; paused=false;
@@ -542,7 +568,17 @@ function finishGame(){
   localStorage.removeItem(LS_SNAPSHOT);
 }
 $('#printSummary').onclick=()=>window.print();
-$('#closeSummary').onclick=()=>$('#summaryCard').style.display='none';
+$('#closeSummary').onclick = () => {
+  $('#summaryCard').style.display = 'none';
+  $('#showSummaryBtn').style.display = 'inline-block';
+};
+$('#showSummaryBtn').onclick = () => {
+  $('#summaryCard').style.display = 'block';
+  $('#showSummaryBtn').style.display = 'none';
+};
+$('#summaryCard').style.display = 'block';
+$('#showSummaryBtn').style.display = 'none';
+
 
 // ====== Snapshot (reprendre une partie)
 function saveSnapshot(){
@@ -564,6 +600,7 @@ function applySnapshot(s){ mode=s.mode; perQ=s.perQ; i=s.i; score=s.score; filte
 
 (function boot(){ progressTxt.textContent='Question 0/0'; timerEl.textContent='0'; renderScoreTable(); drawChart(); })();
 </script>
+
 </body>
 </html>
 

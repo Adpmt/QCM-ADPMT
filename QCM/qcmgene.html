@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>QCM GENE</title>
+<style>
+:root{
+  --bg:#0f172a;
+  --card:#1e293b;
+  --text:#e5e7eb;
+  --muted:#9ca3af;
+  --ok:#22c55e;
+  --bof:#fbbf24;
+  --bad:#ef4444;
+  --btn:#2563eb;
+  --surface:#0b1223;
+  --border:#334155;
+}
+/* ===== Palette inspirée du logo Sabena technics ===== */
+:root[data-theme="light"]{
+  --bg:#f5f7fa;
+  --card:#ffffff;
+  --text:#111827;           /* Texte principal : noir anthracite */
+  --muted:#374151;          /* Sous-titres : gris foncé */
+  --ok:#007A33;             /* Vert Sabena (validation) */
+  --bof:#FFD200;            /* Jaune Sabena */
+  --bad:#C1121F;            /* Rouge profond (erreur) */
+  --btn:#003366;            /* Bleu Sabena */
+  --surface:#f0f4f8;        /* Fond clair homogène */
+  --border:#cbd5e1;         /* Bordures neutres */
+}
+
+:root[data-theme="light"] .opt{
+  color: var(--text);
+  background:#ffffff;
+  border-color: var(--border);
+}
+:root[data-theme="light"] .opt:hover,
+:root[data-theme="light"] .opt:focus{
+  outline: 2px solid var(--btn);
+  background: color-mix(in srgb, var(--btn) 6%, #fff);
+}
+:root[data-theme="light"] .opt.correct{
+  outline-color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 15%, #fff);
+  color: var(--text);
+}
+:root[data-theme="light"] .opt.wrong{
+  outline-color: var(--bad);
+  background: color-mix(in srgb, var(--bad) 10%, #fff);
+  color: var(--text);
+}
+:root[data-theme="light"] .badge-status.badge-ok{ color: var(--ok); }
+:root[data-theme="light"] .badge-status.badge-bof{ color: var(--bof); }
+:root[data-theme="light"] .badge-status.badge-bad{ color: var(--bad); }
+
+:root[data-theme="light"] button{ background: var(--btn); color: #fff; }
+:root[data-theme="light"] .btn-gray{ background: var(--surface); color: var(--text); }
+
+html,body{height:100%}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:system-ui,Segoe UI,Roboto,sans-serif;
+  padding:16px;
+  display:flex;
+  justify-content:center;   /* ✅ centre horizontalement */
+  align-items:flex-start;    /* garde le haut visible (évite centrage vertical complet) */
+  min-height:100vh;          /* occupe toute la hauteur de la fenêtre */
+}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.15);padding:16px}
+.main{
+  width:100%;
+  max-width:900px;
+}
+
+.side{width:340px;min-width:300px;max-height:90vh;overflow:auto;display:flex;flex-direction:column;gap:12px}
+h1{margin:0 0 10px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+select,input,button{padding:8px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text)}
+button{cursor:pointer;background:var(--btn);color:#fff;border:none}
+.btn-gray{background:var(--surface);color:var(--text)}
+.pill{background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:6px 10px;display:inline-flex;gap:6px;align-items:center}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.opt{
+  background:var(--surface);border:1px solid var(--btn);border-radius:10px;
+  padding:14px 16px;cursor:pointer;text-align:left;font-size:1.05rem;font-weight:600;
+  transition:transform .12s ease
+}
+.opt:hover{transform:scale(1.02)}
+.opt.correct{outline:2px solid var(--ok);background:rgba(34,197,94,.12)}
+.opt.wrong{outline:2px solid var(--bad);background:rgba(239,68,68,.12)}
+.muted{color:var(--muted);font-size:.92rem}
+.timer{background:var(--surface);border:1px solid var(--border);padding:6px 10px;border-radius:999px}
+.badge{background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:2px 8px;font-size:.8rem}
+.badge-status{margin-left:8px;padding:2px 10px;border-radius:999px;font-size:.9rem;border:1px solid var(--border);display:none}
+.badge-ok{color:var(--ok)}
+.badge-bof{color:var(--bof)}
+.badge-bad{color:var(--bad)}
+table{width:100%;border-collapse:collapse}
+th,td{padding:8px;border-bottom:1px solid var(--border);text-align:left}
+th{color:var(--muted)}
+.log{background:var(--surface);padding:10px;border-radius:8px;height:300px;overflow:auto}
+.ok{color:var(--ok)} .bof{color:var(--bof)} .bad{color:var(--bad)}
+.hl{font-weight:700;text-decoration:underline}
+.progressbar{height:8px;background:var(--surface);border:1px solid var(--border);border-radius:999px;overflow:hidden}
+.progressbar > div{height:100%;background:var(--btn);width:0%}
+.svg-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px}
+hr{border:none;border-top:1px solid var(--border);margin:12px 0}
+.small{font-size:.9rem}
+@media (max-width:640px){
+  .grid{grid-template-columns:1fr}
+}
+
+</style>
+</head>
+<body>
+  
+  <div class="card main">
+    <div class="row" style="justify-content:space-between">
+      <h1>✈️ QCM GENE</h1>
+      
+      <button id="themeToggle" class="btn-gray" title="Changer de thème">🌙/☀️</button>
+    <button id="homeBtn" class="btn-gray" title="Retour à l'accueil">🏠 Accueil</button>
+    </div>
+    <script>
+    document.getElementById("homeBtn").addEventListener("click", () => {
+    window.location.href = "https://adpmt.github.io/QCM-ADPMT/";
+    });
+    </script>
+    
+    <!-- Outils -->
+    <div class="row">
+      <div style="min-width:160px">
+        <label class="small">Pseudo</label>
+        <input id="pseudoInput" placeholder="Ton nom" maxlength="20" />
+      </div>
+
+      <div class="pill"><span>⏱️</span><b id="timer">0</b>s</div>
+      <div class="pill">Score: <b id="score">0</b></div>
+    </div>
+
+    <!-- Question -->
+    <div class="card" style="margin-top:10px">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <div style="font-size:1.2rem;font-weight:700">
+          <span id="progressTxt">Question 0/0</span>
+          <span id="prevBadge" class="badge-status">OK</span>
+        </div>
+        <div class="progressbar" style="flex:1;max-width:360px">
+          <div id="progressBar"></div>
+        </div>
+      </div>
+      <p id="question" style="font-size:1.25rem;font-weight:700;margin:8px 0">Clique sur Démarrer</p>
+      <div id="choices" class="grid"></div>
+      <div id="feedback" class="muted" style="min-height:28px;margin-top:6px"></div>
+
+      <div class="row" style="margin-top:8px">
+        <button id="startBtn">Démarrer</button>
+        <button id="pauseBtn" class="btn-gray" disabled>Pause</button>
+        <button id="stopBtn" class="btn-gray" disabled>Stop</button>
+        <button id="resumeBtn" class="btn-gray" style="display:none">Reprendre</button>
+      </div>
+    </div>
+
+    <!-- Résumé -->
+    <div id="summaryCard" class="card" style="margin-top:10px;display:block">
+      <h3 style="margin:0 0 6px">Résumé</h3>
+      <div id="summaryStats" class="muted"></div>
+      <div id="summaryList" class="muted" style="height:220px;overflow:auto;margin-top:8px"></div>
+      <div class="row" style="margin-top:8px">
+        <button id="printSummary" class="btn-gray">Imprimer</button>
+        <button id="closeSummary" class="btn-gray">Fermer</button>
+      </div>
+    </div>
+
+<div id="scoreBoardCard" class="card" style="margin-top:10px">
+  <h3 style="margin:0 0 6px">Tableau des scores</h3>
+  <div class="muted small">Affiche les 10 derniers (stocke 30 max).</div>
+  <table>
+    <thead>
+      <tr><th>Pseudo</th><th>Score</th><th>%</th><th>Date</th></tr>
+    </thead>
+    <tbody id="scoreTableBody"></tbody>
+  </table>
+  <div class="row" style="margin-top:6px">
+    <button id="clearScores" class="btn-gray">Effacer</button>
+  </div>
+</div>
+
+    <!-- Progression -->
+    <div class="card" style="margin-top:10px">
+      <h3 style="margin:0 0 6px">📈 Progression</h3>
+      <div class="svg-wrap"><svg id="chart" viewBox="0 0 320 120" width="100%" height="120" aria-label="Courbe des %"></svg></div>
+    </div>
+  </div>
+
+
+
+<script>
+// ====== Helpers
+const $ = s => document.querySelector(s);
+const pad2 = n => String(n).padStart(2,'0');
+const nowStamp = () => { const d=new Date(); return `${pad2(d.getDate())}/${pad2(d.getMonth()+1)}/${String(d.getFullYear()).slice(-2)} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`; };
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]] } return a; }
+
+// ====== Thème
+const THEME_KEY='ata_theme';
+(function applyTheme(){
+  const t = localStorage.getItem(THEME_KEY)||'dark';
+  document.documentElement.setAttribute('data-theme', t==='light'?'light':'dark');
+})();
+$('#themeToggle').onclick=()=>{
+  const cur=document.documentElement.getAttribute('data-theme')==='light'?'light':'dark';
+  const nxt=cur==='light'?'dark':'light';
+  document.documentElement.setAttribute('data-theme',nxt);
+  localStorage.setItem(THEME_KEY,nxt);
+};
+
+// ====== Storage keys
+const LS_SCORES='qcmgene_scores_v2';
+const LS_PSEUDO='qcmgene_pseudo_v2';
+const LS_SNAPSHOT='qcmgene_snapshot_v1';
+
+// ====== État
+let running=false, paused=false, i=0, score=0;
+let questionOrder=[], filteredQuestions=[];
+let timeLeft=0, tickHandle=null, mode='TRAIN', perQ=15;
+let answersLog=[];
+
+// ====== DOM
+const qEl=$('#question'), choicesEl=$('#choices'), feedbackEl=$('#feedback');
+const timerEl=$('#timer'), scoreEl=$('#score'), progressTxt=$('#progressTxt'), progressBar=$('#progressBar');
+const pseudoInput=$('#pseudoInput'); pseudoInput.value=localStorage.getItem(LS_PSEUDO)||'';
+pseudoInput.addEventListener('change',()=>localStorage.setItem(LS_PSEUDO,pseudoInput.value.trim()));
+
+// ====== Questions (exemple) — remplace/complète par ta liste complète si besoin
+let QUESTIONS = [
+// ATA 20 – Pratiques standard (maintenance)
+  { "q":"Dans le cadre des procédures de maintenance moteur, la ventilation dite « sèche » est exigée après quelle opération ?","choices":["Un lavage du compresseur","Un arrêt moteur standard","Une mise en stockage prolongée"],"answer":0 },
+  { "q":"L’utilisation d’une cale de type GO / NO GO permet principalement de contrôler :","choices":["Une déformation géométrique de pale","Le jeu ou l’écartement des cannelures du moyeu","Un défaut de structure sur une pale composite"],"answer":1 },
+  { "q":"Concernant les limitations de stockage, la durée maximale admissible est définie par :","choices":["Une durée calendaire fixe de 3 ans","Une durée calendaire fixe de 5 ans","La limite de validité des éléments élastomères de dégivrage"],"answer":2 },
+  { "q":"Sur les avions de génération récente (ex. A330), quel système assure la centralisation des données de maintenance ?","choices":["FWC","SDAC","CMC","DMC"],"answer":2 },
+  { "q":"Pour l’accès aux fonctions de maintenance via le cockpit, combien de MCDU peuvent être exploitées simultanément ?","choices":["Une seule unité","Deux unités au maximum","Trois unités simultanément","Aucune, l’accès est externe uniquement"],"answer":1 },
+  { "q":"Avant toute mise en rotation moteur lors d’une action de maintenance, la condition impérative liée à la zone de danger est :","choices":["La présence d’un extincteur à proximité","La confirmation visuelle et verbale de l’évacuation de la zone","La mise en place d’une signalisation lumineuse uniquement"],"answer":1 },
+  { "q":"Lors d’une intervention sur un moteur récemment arrêté, le principal risque lié à l’absence de ventilation préalable est :","choices":["Une détérioration des capteurs moteur","Une inflammation de vapeurs résiduelles de carburant","Une décharge électrique des calculateurs"],"answer":1 },
+  { "q":"Dans les procédures constructeur, une opération de ventilation moteur est considérée comme correctement réalisée lorsque :","choices":["Le moteur a effectué un nombre de tours prédéfini sans allumage ni carburant","La pression carburant est nulle","La température EGT est revenue à température ambiante"],"answer":0 },
+  { "q":"La consultation des données de maintenance enregistrées dans le CMC permet notamment :","choices":["La remise à zéro automatique des défauts","L’identification et l’historique des pannes enregistrées","Le recalage automatique des capteurs moteur"],"answer":1 },
+  { "q":"En maintenance Part-66, l’accès aux fonctions de test via MCDU est autorisé uniquement si :","choices":["L’avion est alimenté électriquement","Les conditions de sécurité définies par la procédure sont respectées","Les moteurs sont arrêtés depuis plus de 30 minutes"],"answer":1 },
+// ATA 29 – Hydraulique (niveau Part-66 très difficile)
+{"q":"La régulation du pas d’une hélice hydraulique utilise une énergie issue du circuit principal, ce qui implique directement :","choices":["Une dépendance à la pression hydraulique disponible","Une alimentation indépendante du moteur","Un fonctionnement purement mécanique"],"answer":0},
+{"q":"Sur un avion de transport, une pression nominale de 3000 PSI permet principalement :","choices":["Une réduction du diamètre des actionneurs","Une augmentation du débit volumique","Une diminution de la température du fluide"],"answer":0},
+{"q":"Dans un circuit hydraulique standard, l’absence d’accumulateur aurait pour conséquence directe :","choices":["Des variations de pression non amorties","Une perte immédiate de débit","Une cavitation systématique de la pompe"],"answer":0},
+{"q":"L’utilisation d’un fluide hydraulique synthétique en aviation est principalement justifiée par :","choices":["Sa stabilité thermique et sa résistance au feu","Sa compatibilité universelle avec tous joints","Sa faible densité"],"answer":0},
+{"q":"Lors de la mise sous pression d’un circuit par électropompe, un débit nul avec pression nominale indique généralement :","choices":["Un actionneur en butée","Une pompe défectueuse","Une fuite externe majeure"],"answer":0},
+{"q":"La précharge azote d’un accumulateur est critique car elle conditionne :","choices":["La capacité d’absorption des pics de pression","La pression maximale du circuit","La température du fluide"],"answer":0},
+{"q":"Le PTU permet la transmission d’énergie hydraulique sans mélange de fluide, ce qui implique :","choices":["Une séparation stricte des circuits","Un équilibrage automatique des pressions","Une alimentation électrique de secours"],"answer":0},
+{"q":"Dans un circuit hydraulique, une augmentation de pression sans variation de débit traduit généralement :","choices":["Une charge accrue sur l’actionneur","Une augmentation de la vitesse de déplacement","Une fuite interne"],"answer":0},
+{"q":"Les marquages triangulaires gris sur les tuyauteries hydrauliques indiquent principalement :","choices":["L’identification du circuit et le sens d’écoulement","Une zone de danger thermique","Un circuit de drainage"],"answer":0},
+{"q":"Lorsqu’une vanne d’isolement hydraulique se ferme automatiquement en vol, la cause probable est :","choices":["Une détection de fuite ou de surtempérature","Une baisse de quantité carburant","Une surcharge électrique"],"answer":0},
+{"q":"Une indication hydraulique absente au cockpit avec pression réelle présente indique généralement :","choices":["Une défaillance de capteur ou de transmission","Une perte réelle de pression","Un défaut de pompe"],"answer":0},
+{"q":"La valve de surpression de bâche a pour rôle essentiel de :","choices":["Protéger la bâche contre la dilatation thermique du fluide","Réguler la pression du circuit principal","Maintenir la quantité de fluide"],"answer":0},
+{"q":"Le refroidissement hydraulique par échangeur fuel/hydraulic devient inefficace principalement lorsque :","choices":["Le carburant est chaud","Le débit hydraulique est trop faible","La pression carburant chute"],"answer":0},
+{"q":"Un filtre haute pression colmaté provoque en priorité :","choices":["Une chute de débit en aval de la pompe","Une augmentation de pression en amont","Une contamination accrue du fluide"],"answer":1},
+{"q":"Le risque majeur d’une injection hydraulique sous la peau est lié :","choices":["À la toxicité du fluide et à la nécrose tissulaire","À une brûlure thermique","À une électrisation"],"answer":0},
+{"q":"Avant toute remise en pression hydraulique, l’action la plus critique en maintenance est :","choices":["La sécurisation des zones de débattement","La vérification du niveau de fluide","La mise au neutre des commandes"],"answer":0},
+{"q":"La RAT fournit une énergie de secours principalement destinée à :","choices":["Garantir des commandes de vol minimales","Assurer la pressurisation cabine","Maintenir l’éclairage intérieur"],"answer":0},
+{"q":"Un accumulateur hydraulique n’a PAS pour fonction :","choices":["Stocker une énergie hydraulique","Amortir les coups de bélier","Réguler le débit du circuit"],"answer":2},
+// ATA 33 – Éclairage (niveau Part-66 très difficile)
+{"q":"La séparation de l’éclairage d’un aéronef en deux ensembles distincts répond principalement à :","choices":["Une logique de redondance électrique","Une distinction fonctionnelle exploitation / sécurité","Une contrainte de tension d’alimentation"],"answer":1},
+{"q":"Une lampe à incandescence se distingue d’une LED principalement par :","choices":["Un rendement lumineux supérieur","Un principe basé sur l’échauffement d’un filament","Une nécessité de ballast"],"answer":1},
+{"q":"L’introduction d’iode dans une ampoule quartz permet essentiellement :","choices":["D’augmenter la durée de vie du filament","De stabiliser l’intensité lumineuse","De réduire la consommation électrique"],"answer":0},
+{"q":"Le fonctionnement d’une LED implique obligatoirement :","choices":["Un gaz sous pression","Une jonction semi-conductrice polarisée","Un filament chauffé"],"answer":1},
+{"q":"L’éclairage rouge du cockpit est utilisé de nuit car il :","choices":["Augmente la luminosité perçue","Préserve l’adaptation de la vision nocturne","Réduit la consommation électrique"],"answer":1},
+{"q":"En position ARM, l’allumage automatique de l’éclairage de secours est conditionné par :","choices":["La perte d’alimentation normale","L’ouverture d’une issue","La sélection manuelle pilote"],"answer":0},
+{"q":"L’alimentation autonome des blocs d’éclairage de secours est volontairement limitée à basse tension afin de :","choices":["Réduire la masse des câblages","Limiter les risques électriques en évacuation","Faciliter la recharge rapide"],"answer":1},
+{"q":"L’accès maintenance au système d’éclairage cabine via le CMS implique :","choices":["Une interface MCDU","Un accès direct depuis l’ECAM","Un accès par le panneau FAP uniquement"],"answer":0},
+{"q":"Le contrôle de l’éclairage cabine par le CIDS permet notamment :","choices":["Une gestion centralisée et scénarisée","Une alimentation électrique indépendante","Un contrôle direct par les pilotes"],"answer":0},
+{"q":"Le feu de navigation rouge positionné à l’extrémité d’aile gauche permet :","choices":["La reconnaissance du sens de déplacement de l’aéronef","L’éclairage de piste","La signalisation d’urgence"],"answer":0},
+// ATA 49 – APU (niveau Part-66 très difficile)
+{"q":"Le démarreur APU de type électrique CA impose nécessairement :","choices":["Un redressement de courant","Un variateur de fréquence","Une source alternative adaptée"],"answer":2},
+{"q":"La capacité de l’APU à fournir simultanément de l’énergie pneumatique et électrique dépend :","choices":["Du régime APU et des limitations constructeur","Uniquement de la température extérieure","De la quantité carburant avion"],"answer":0},
+{"q":"Lors du démarrage moteur principal, l’APU agit comme source pneumatique en fournissant :","choices":["Un débit d’air haute pression","Un débit d’air régulé en température","Un débit d’air constant quelle que soit la charge"],"answer":0},
+{"q":"Une EGT élevée avec stagnation du régime APU traduit une anomalie de type :","choices":["Hot start","Hung start","Wet start"],"answer":1},
+{"q":"La protection survitesse APU déclenche prioritairement :","choices":["Une réduction progressive de charge","Une coupure immédiate carburant","Un passage en mode dégradé"],"answer":1},
+{"q":"L’utilisation principale de l’air APU au sol concerne :","choices":["La pressurisation cabine","Le conditionnement et le démarrage moteur","Le refroidissement avionique"],"answer":1},
+{"q":"Un arrêt automatique APU peut être déclenché sans action équipage lorsque :","choices":["Les paramètres dépassent les limites certifiées","La charge électrique chute","Un moteur principal démarre"],"answer":0},
+{"q":"L’exploitation APU en vol est autorisée uniquement si :","choices":["Les conditions et limitations avion sont respectées","La température extérieure est négative","Un moteur est inopérant"],"answer":0},
+{"q":"Les informations de défaut APU accessibles en maintenance proviennent :","choices":["Du CMS via le MCDU","Du FADEC moteur principal","Du système ECAM uniquement"],"answer":0},
+{"q":"La limitation majeure d’utilisation de l’APU en vol est liée principalement :","choices":["À l’altitude et à la certification","À la pression carburant","À la charge hydraulique avion"],"answer":0},
+// ATA 61 – Hélices (niveau Part-66 très difficile)
+{"q":"La mise en position drapeau d’une hélice n’est possible que si le système permet :","choices":["Une variation continue de l’angle de pas au-delà du pas fin","Un blocage mécanique de la rotation","Une commande purement aérodynamique"],"answer":0},
+{"q":"Dans un turbopropulseur, l’élévation de température de l’air comprimé intervient exclusivement dans :","choices":["La turbine haute pression","La soufflante","La boîte de réduction","La chambre de combustion"],"answer":3},
+{"q":"Sur un turbopropulseur certifié transport, la part majoritaire de la poussée est fournie par :","choices":["Le flux résiduel des gaz","La tuyère","L’hélice","Le fan interne"],"answer":2},
+{"q":"Quel concept de turbopropulseur a été abandonné en aviation moderne en raison de son rendement et de sa complexité ?","choices":["Turbine libre","Turbine liée","Turbine libre inversée","Axialo-centrifuge"],"answer":3},
+{"q":"L’architecture moteur comportant une chambre de combustion inversée et un arbre de sortie avant est caractéristique du :","choices":["PT6","CFM56","Trent 700","Olympus 593"],"answer":0},
+{"q":"La fonction essentielle du réducteur sur un turbopropulseur est de :","choices":["Adapter la vitesse élevée de la turbine à la vitesse optimale de l’hélice","Augmenter le couple moteur","Stabiliser la poussée résiduelle"],"answer":0},
+{"q":"La conversion de l’énergie cinétique des gaz en énergie mécanique exploitable est assurée par :","choices":["Le compresseur","La turbine","La soufflante","Le réducteur"],"answer":1},
+{"q":"Un calage petit pas d’hélice a pour conséquence directe :","choices":["Une augmentation du couple résistant","Un régime moteur élevé à faible vitesse avion","Une diminution de la traînée"],"answer":1},
+{"q":"L’intérêt principal d’une hélice à pas variable, en exploitation, est de :","choices":["Maintenir le moteur dans sa plage de rendement optimal","Réduire la masse du groupe propulsif","Supprimer les variations de couple"],"answer":0},
+// ATA 71 – Groupe motopropulseur (généralités) – niveau Part-66 très difficile
+{"q":"Les turboréacteurs simple flux sont historiquement plus bruyants car :","choices":["La totalité de la poussée est produite par un jet à très haute vitesse","Ils ne possèdent pas de traitement acoustique","Ils utilisent une post-combustion permanente"],"answer":0},
+{"q":"Les avions de transport civil utilisent majoritairement des turbofans car ceux-ci offrent :","choices":["Un meilleur rendement propulsif à vitesse subsonique","Une poussée maximale supérieure","Une architecture plus simple"],"answer":0},
+{"q":"La fixation avant d’un moteur sous voilure est conçue pour reprendre :","choices":["Les efforts de poussée et les charges massiques","Les efforts gyroscopiques uniquement","Les efforts thermiques du moteur"],"answer":0},
+{"q":"Un moteur double flux se distingue d’un simple flux par :","choices":["La séparation du débit d’air en flux primaire et secondaire","La présence d’une post-combustion","L’absence de turbine basse pression"],"answer":0},
+{"q":"Le montage d’un moteur sous voilure sur pylône permet principalement :","choices":["La reprise structurale des efforts et l’isolation vibratoire","Une réduction de la traînée","Une alimentation directe en carburant"],"answer":0},
+{"q":"La loi de la poussée F = Qa (Ve − Vs) montre que la poussée dépend directement :","choices":["De la variation de vitesse de la masse d’air traversant le moteur","De la température des gaz","Du régime de rotation du compresseur"],"answer":0},
+{"q":"La réduction du bruit sur les moteurs modernes repose principalement sur :","choices":["Le ralentissement du jet par augmentation du taux de dilution et l’absorption acoustique","La diminution du débit massique","L’augmentation de la pression de sortie"],"answer":0},
+{"q":"Le chauffage des pales moteur est mis en œuvre afin de :","choices":["Empêcher la formation de glace susceptible de provoquer un déséquilibre","Augmenter la poussée disponible","Réduire la consommation spécifique"],"answer":0},
+// ATA 72 – Moteur (parties internes) – niveau Part-66 très difficile
+{"q":"Lorsqu’un moteur doit rester compact tout en délivrant un rapport de compression élevé par étage, le compresseur retenu est généralement :","choices":["Axial multistage","Centrifuge","Mixte axial-centrifuge","À palettes oscillantes"],"answer":1},
+{"q":"L’augmentation du taux de dilution sur un turbofan améliore le rendement propulsif principalement parce que :","choices":["La vitesse d’éjection moyenne du flux est réduite","La température turbine est abaissée","La pression totale en sortie de compresseur augmente"],"answer":0},
+{"q":"Dans un compresseur axial, un étage complet comprend nécessairement :","choices":["Un rotor suivi d’un stator","Un stator suivi d’un rotor","Un rotor seul"],"answer":0},
+{"q":"Le choix majoritaire d’un compresseur mixte sur moteurs modernes s’explique par :","choices":["Un compromis rendement / longueur / stabilité","Une simplicité mécanique","Une réduction du nombre de paliers"],"answer":0},
+{"q":"Le cycle thermodynamique réel d’une turbine à gaz s’écarte du cycle de Brayton idéal principalement à cause :","choices":["Des pertes aérodynamiques et thermiques","Du rendement de combustion parfait","De l’absence de compression isentropique"],"answer":0},
+{"q":"Le brevet déposé par M. Guillaume en 1921 concerne principalement :","choices":["Le principe général de la turbine à gaz","Le turbofan double flux","Le turboréacteur à postcombustion"],"answer":0},
+{"q":"La ventilation interne moteur est essentielle car elle permet notamment :","choices":["Le refroidissement d’équipements et la limitation des contraintes thermiques","L’augmentation du rendement propulsif","La régulation directe du régime moteur"],"answer":0},
+{"q":"Les traitements acoustiques internes de soufflante sont conçus pour atténuer prioritairement :","choices":["Les bruits liés aux interactions rotor/stator","Les vibrations mécaniques du réducteur","Les chocs thermiques turbine"],"answer":0},
+{"q":"Un turbomoteur à turbine libre se distingue d’une turbine liée par le fait que :","choices":["La turbine de puissance est mécaniquement indépendante du générateur de gaz","Le compresseur est entraîné par la turbine de puissance","Le réducteur est supprimé"],"answer":0},
+{"q":"Un turboréacteur est qualifié de double corps lorsque :","choices":["Deux ensembles tournant à des vitesses différentes coexistent","Deux chambres de combustion sont installées","Deux compresseurs axiaux sont montés en parallèle"],"answer":0},
+{"q":"Dans un moteur double corps, la séparation BP/HP permet principalement :","choices":["Une meilleure stabilité et un rendement accru sur une large plage de régimes","Une augmentation de la poussée maximale","Une réduction de la masse moteur"],"answer":0},
+{"q":"Le terme GTR désigne un moteur dont la propulsion est assurée par :","choices":["La réaction directe des gaz éjectés","Une hélice entraînée mécaniquement","Un arbre de puissance externe"],"answer":0},
+// ATA 73 – Carburant & commande carburant – niveau Part-66 très difficile
+{"q":"Dans un turboréacteur, la combustion du carburant est réalisée dans une zone où :","choices":["La vitesse de l’air est fortement réduite et stabilisée","La pression est minimale","Le débit d’air est maximal"],"answer":0},
+{"q":"La vanne de décharge compresseur est dimensionnée afin de :","choices":["Maintenir la stabilité du compresseur hors point de fonctionnement","Réduire la consommation spécifique","Alimenter les systèmes cabine"],"answer":0},
+{"q":"Le rôle principal du FCU dans un système moderne est de :","choices":["Doser le carburant en fonction des ordres et des paramètres moteur","Commander directement le débit d’air","Optimiser le rendement propulsif global"],"answer":0},
+{"q":"L’OMS embarqué est destiné avant tout à :","choices":["L’aide au diagnostic et à la maintenance","La gestion automatique du moteur","La surveillance carburant en temps réel"],"answer":0},
+{"q":"Sur un moteur FADEC, la régulation carburant est caractérisée par :","choices":["Une commande entièrement numérique avec lois de protection intégrées","Un contrôle purement hydromécanique","Une action directe du pilote sur le débit"],"answer":0},
+{"q":"En cas de défaillance du canal principal FADEC carburant :","choices":["Un canal redondant assure un fonctionnement dégradé","Le moteur s’arrête automatiquement","La commande devient purement manuelle"],"answer":0},
+{"q":"La commande de coupure carburant par poignée coupe-feu entraîne :","choices":["Une fermeture mécanique des vannes carburant moteur","Une simple réduction du débit carburant","Un arrêt électrique sans action carburant"],"answer":0},
+{"q":"Le débit carburant injecté est ajusté principalement en fonction :","choices":["Du régime moteur, de la poussée demandée et des protections","De la température cabine","De la pression hydraulique"],"answer":0},
+{"q":"Sur turboréacteur, le carburant est également utilisé afin de :","choices":["Refroidir des composants et participer à la lubrification","Augmenter la pression huile","Réduire le bruit moteur"],"answer":0},
+{"q":"Un colmatage progressif du circuit carburant se traduit en priorité par :","choices":["Une limitation de poussée et un fonctionnement dégradé","Une augmentation immédiate du régime moteur","Une surpression huile"],"answer":0},
+// ATA 74 – Allumage (niveau Part-66 très difficile)
+{"q":"Avant toute intervention sur un circuit d’allumage, le respect du délai constructeur est impératif afin de :","choices":["Permettre la décharge complète des exciters haute énergie","Éviter un échauffement excessif des igniters","Stabiliser la pression carburant résiduelle"],"answer":0},
+{"q":"Une ventilation humide est prescrite principalement lorsque :","choices":["Du carburant non brûlé est susceptible d’être présent dans la chambre","Le moteur a fonctionné à faible régime","La température EGT est inférieure à la normale"],"answer":0},
+{"q":"Le système d’allumage moteur n’est requis en fonctionnement continu que :","choices":["Dans des conditions spécifiques définies par le constructeur","Lorsque la poussée maximale est demandée","Lors du fonctionnement normal en croisière"],"answer":0},
+{"q":"L’utilisation des bougies d’allumage est limitée dans le temps car :","choices":["La combustion est auto-entretenue une fois établie","Le système d’allumage ne supporte pas la haute altitude","Les igniters surchauffent rapidement"],"answer":0},
+{"q":"En régime établi, la disparition de l’allumage n’entraîne généralement pas d’extinction moteur car :","choices":["La flamme est maintenue par l’énergie thermique et le débit carburant","Le FADEC compense par un enrichissement","La turbine fournit une source d’ignition secondaire"],"answer":0},
+{"q":"L’allumage continu est sélectionné automatiquement ou manuellement afin de :","choices":["Prévenir les extinctions de flamme en conditions perturbées","Augmenter la stabilité du régime moteur","Réduire la consommation spécifique"],"answer":0},
+{"q":"L’exciter d’allumage est conçu pour fournir :","choices":["Une impulsion électrique de très haute énergie","Un courant alternatif stabilisé","Une tension continue basse intensité"],"answer":0},
+{"q":"Une panne complète du système d’allumage en vol se traduit généralement par :","choices":["Aucune conséquence tant que la combustion est établie","Un arrêt moteur immédiat","Une survitesse turbine"],"answer":0},
+{"q":"Les igniters sont implantés dans la chambre de combustion afin de :","choices":["Assurer une inflammation efficace du mélange air/carburant","Optimiser la température EGT","Limiter les vibrations moteur"],"answer":0},
+{"q":"La redondance des circuits d’allumage est principalement destinée à :","choices":["Garantir la fiabilité de l’allumage lors des phases critiques","Permettre un fonctionnement continu permanent","Réduire la consommation électrique"],"answer":0},
+// ATA 75 – Air (niveau Part-66 très difficile)
+{"q":"Le système d’anti-givrage d’entrée d’air est qualifié de préventif car :","choices":["Il empêche la formation de glace avant apparition","Il élimine la glace déjà formée","Il agit uniquement après détection de givrage"],"answer":0},
+{"q":"L’air de prélèvement moteur destiné au conditionnement cabine est prélevé à un stade où :","choices":["La pression et la température sont suffisantes","La température est minimale","La vitesse d’écoulement est maximale"],"answer":0},
+{"q":"La surveillance vibratoire moteur est conçue pour détecter prioritairement :","choices":["Des déséquilibres dynamiques et dégradations mécaniques","Des obstructions d’entrée d’air","Des variations de température turbine"],"answer":0},
+{"q":"La présence d’une post-combustion impose l’utilisation d’une tuyère variable afin de :","choices":["Adapter la section aux variations de débit et de pression","Réduire le bruit du jet","Améliorer la combustion primaire"],"answer":0},
+{"q":"L’anti-givrage d’entrée d’air utilisant de l’air chaud a pour inconvénient principal :","choices":["Une pénalité sur les performances moteur","Une augmentation du débit carburant uniquement","Une réduction de la stabilité compresseur"],"answer":0},
+{"q":"Un défaut d’entrée d’air peut provoquer simultanément :","choices":["Un pompage compresseur et une perte de rendement","Une survitesse turbine","Une augmentation de la poussée"],"answer":0},
+{"q":"Le divergent d’entrée d’air est dimensionné afin de :","choices":["Transformer la vitesse en pression statique","Accélérer l’air vers le compresseur","Créer une turbulence contrôlée"],"answer":0},
+{"q":"Le terme « bleed air » désigne un prélèvement d’air effectué :","choices":["Sur le compresseur à un stade intermédiaire ou élevé","Sur la turbine basse pression","Dans l’entrée d’air"],"answer":0},
+{"q":"Une obstruction partielle de l’entrée d’air se traduit prioritairement par :","choices":["Une instabilité moteur et une dégradation des marges de pompage","Une augmentation de la poussée","Une réduction du débit carburant commandé"],"answer":0},
+{"q":"Le pilotage du système d’anti-givrage d’entrée d’air est généralement :","choices":["Automatique avec possibilité de commande manuelle","Exclusivement manuel","Exclusivement automatique sans retour cockpit"],"answer":0},
+// ATA 76 – Commandes moteur (niveau Part-66 très difficile)
+{"q":"Les flèches représentées sur un schéma de compresseur indiquant des éléments orientables correspondent généralement à :","choices":["Des vannes de décharge utilisées en régime transitoire","Des aubes de stator à calage variable assurant la stabilité du compresseur","Des aubes fixes destinées au redressement du flux"],"answer":1},
+{"q":"Dans un régulateur mécanique à masselottes, l’équilibre est atteint lorsque :","choices":["La force centrifuge est compensée par l’effort du ressort via le tiroir","La pression carburant atteint sa valeur maximale","Le piston est en butée mécanique"],"answer":0},
+{"q":"Sur un régulateur centrifuge, une augmentation du couple résistant provoque initialement :","choices":["Un déplacement du tiroir modifiant le débit carburant","Une variation directe du débit d’air","Une augmentation immédiate de la pression huile"],"answer":0},
+{"q":"Les interrupteurs d’éclairage des soutes cargo sont situés localement afin de :","choices":["Garantir une utilisation indépendante de l’alimentation cockpit","Permettre une commande directe lors des opérations sol","Réduire la charge électrique avion"],"answer":1},
+{"q":"La fonction principale des VSV est de :","choices":["Maintenir l’angle d’incidence des aubes dans une plage stable","Augmenter la pression totale du compresseur","Limiter la température turbine"],"answer":0},
+{"q":"Les OGV sont installées en sortie de soufflante afin de :","choices":["Transformer l’énergie cinétique résiduelle en poussée utile","Redresser l’écoulement et réduire les pertes aérodynamiques","Réguler automatiquement le débit carburant"],"answer":1},
+{"q":"Un système FADEC assure une gestion moteur complète en intégrant :","choices":["Commande, surveillance et protections automatiques","Uniquement le dosage carburant","Uniquement les protections survitesse"],"answer":0},
+{"q":"L’action du pilote sur la manette moteur est interprétée par le FADEC comme :","choices":["Une demande de poussée traduite en lois de commande","Une commande directe du débit carburant","Une consigne de régime N2"],"answer":0},
+{"q":"Le fonctionnement en mode dégradé de commande moteur implique généralement :","choices":["Une limitation des performances avec protections conservées","Une perte de toutes les protections moteur","Un arrêt automatique du moteur"],"answer":0},
+{"q":"La philosophie « fail-operational » appliquée aux commandes moteur vise à :","choices":["Maintenir la fonction malgré certaines défaillances","Arrêter le moteur en cas de panne","Limiter les performances sans redondance"],"answer":0},
+// ATA 77 – Indications moteur (niveau Part-66 très difficile)
+{"q":"Le rapport Pt7/Pt2 utilisé pour l’EPR est pertinent car il reflète :","choices":["La variation de quantité de mouvement du flux traversant le moteur","Le régime mécanique réel de la soufflante","La pression carburant injectée"],"answer":0},
+{"q":"L’indication N1 est privilégiée comme paramètre de poussée car :","choices":["Elle est directement liée au flux secondaire propulsif","Elle mesure la température turbine","Elle est indépendante de la masse d’air"],"answer":0},
+{"q":"L’indication N2 correspond au régime du corps haute pression, ce qui implique :","choices":["Une relation directe avec la compression et la température turbine","Une mesure de la poussée disponible","Une indication de vitesse avion"],"answer":0},
+{"q":"L’EGT constitue un paramètre critique car elle est représentative :","choices":["Des contraintes thermiques globales du moteur","De la consommation carburant instantanée","Du rendement propulsif"],"answer":0},
+{"q":"Une EGT excessive peut résulter directement :","choices":["D’un débit carburant inadapté ou d’un refroidissement insuffisant","D’une baisse de régime N1","D’une panne du système d’allumage en croisière"],"answer":0},
+{"q":"Les paramètres moteur affichés au cockpit proviennent :","choices":["De capteurs associés à des calculateurs de traitement","D’un système purement mécanique","D’un réseau hydraulique dédié"],"answer":0},
+{"q":"La perte de l’indication N1 n’entraîne pas l’arrêt moteur mais conduit à :","choices":["Une dégradation de l’information de poussée pour l’équipage","Une réduction automatique du débit carburant","Une augmentation compensatoire de N2"],"answer":0},
+{"q":"Sur avion de transport moderne, les indications moteur sont principalement affichées sur :","choices":["L’ECAM","Le ND","Le FCU"],"answer":0},
+{"q":"Un capteur EGT défaillant est susceptible de provoquer :","choices":["Une alarme erronée sans dégradation réelle du moteur","Une perte immédiate de poussée","Un arrêt moteur automatique"],"answer":0},
+{"q":"La surveillance continue des paramètres moteur a pour objectif principal :","choices":["La protection et la longévité du moteur","L’optimisation exclusive de la consommation","L’augmentation systématique de la poussée"],"answer":0},
+// ATA 78 – Échappement (niveau Part-66 très difficile)
+{"q":"Un turbofan se distingue fondamentalement d’un turboréacteur simple flux car :","choices":["Il utilise systématiquement une post-combustion","Le débit d’air est scindé en un flux primaire chaud et un flux secondaire froid","Il ne comporte pas de turbine basse pression"],"answer":1},
+{"q":"La génération de poussée par accélération des gaz est assurée par un composant dont la fonction est de :","choices":["Extraire l’énergie des gaz","Convertir la pression en vitesse","Augmenter le débit massique"],"answer":1},
+{"q":"Le boîtier d’accessoires est entraîné indirectement par :","choices":["La tuyère","La turbine via l’arbre moteur","La soufflante"],"answer":1},
+{"q":"La séparation des flux sur un moteur double flux permet principalement :","choices":["Une réduction de la température turbine","Une diminution du niveau sonore et une amélioration du rendement propulsif","Une augmentation de la pression en sortie"],"answer":1},
+{"q":"L’élévation de pression de l’air nécessaire au cycle moteur est réalisée par :","choices":["La turbine","Le compresseur","La tuyère"],"answer":1},
+{"q":"La soufflante contribue à la poussée totale car elle :","choices":["Accélère un grand débit d’air à faible variation de vitesse","Augmente la température du flux primaire","Stabilise la combustion"],"answer":0},
+{"q":"Les schémas représentant respectivement un statoréacteur et un moteur à post-combustion se distinguent principalement par :","choices":["La présence d’un compresseur","La présence d’une zone de combustion additionnelle en aval turbine","L’absence totale de turbine"],"answer":1},
+{"q":"Sur un turbofan de forte poussée, l’inverseur agit sur le flux froid afin de :","choices":["Limiter les contraintes thermiques et mécaniques","Assurer une efficacité maximale du freinage","Réduire la pression en amont turbine"],"answer":1},
+// ATA 79 – Huile (niveau Part-66 très difficile)
+{"q":"L’analyse spectrométrique de l’huile est utilisée en maintenance prédictive afin de :","choices":["Détecter une contamination métallique liée à l’usure interne","Mesurer la dilution carburant","Contrôler la viscosité en service"],"answer":0},
+{"q":"L’échangeur huile-carburant permet de maintenir l’huile dans sa plage thermique car :","choices":["Le carburant absorbe l’excès de chaleur","L’huile est réchauffée uniquement au démarrage","Il augmente la pression d’huile"],"answer":0},
+{"q":"Lors d’un démarrage moteur, l’apparition d’une alarme basse pression huile impose l’arrêt car elle indique :","choices":["Une absence de lubrification critique","Un colmatage filtre carburant","Une température huile excessive"],"answer":0},
+{"q":"Les paramètres majeurs surveillés en exploitation moteur sont choisis car ils reflètent :","choices":["Les contraintes mécaniques et thermiques principales","La consommation carburant uniquement","Le rendement propulsif global"],"answer":0},
+{"q":"Sur l’affichage moteur, l’EGT est un paramètre critique car elle représente :","choices":["La limite thermique la plus restrictive du moteur","La température d’huile en sortie échangeur","La température du flux secondaire"],"answer":0},
+{"q":"La présence de plusieurs pompes de récupération dans un circuit d’huile est justifiée par :","choices":["La nécessité d’évacuer l’huile de chaque palier","L’augmentation de la pression d’huile","La réduction de la masse du circuit"],"answer":0},
+{"q":"Lors d’une chute de pression d’huile, la fermeture d’une isolation valve vise à :","choices":["Limiter la perte d’huile et protéger le moteur","Augmenter le débit de récupération","Maintenir la température huile"],"answer":0},
+{"q":"Le micro-contact commandant l’éclairage des toilettes est intégré à la porte afin de :","choices":["Garantir l’allumage automatique à l’occupation","Limiter la consommation électrique avion","Permettre un contrôle par l’équipage"],"answer":0},
+// Autres – Bases (mécanique des fluides / thermo) – niveau Part-66 très difficile
+{"q":"Un réducteur à engrenages décalés est préféré lorsqu’on cherche principalement à :","choices":["Réduire la longueur axiale de l’ensemble","Limiter les efforts radiaux sur les arbres","Augmenter le rendement mécanique"],"answer":0},
+{"q":"Dans le contexte des écoulements internes moteur, l’expression D = V/t correspond à :","choices":["Un débit volumique","Un débit massique","Une densité volumique"],"answer":0},
+{"q":"La relation reliant une augmentation de vitesse à une diminution de pression statique découle du fait que :","choices":["L’énergie mécanique totale du fluide se conserve","La masse volumique varie avec la vitesse","Le débit volumique diminue"],"answer":0},
+{"q":"Dans un écoulement subsonique, la relation de continuité S1V1 = S2V2 traduit :","choices":["La conservation du débit volumique","La conservation de la pression totale","La conservation de la température"],"answer":0},
+{"q":"La pression totale d’un écoulement représente physiquement :","choices":["La somme de l’énergie statique et cinétique par unité de volume","La pression mesurée uniquement en régime accéléré","La pression indépendante de la vitesse"],"answer":0},
+{"q":"Lorsqu’un fluide accélère sans apport d’énergie externe, la baisse de pression statique est due à :","choices":["La conversion pression → énergie cinétique","Une diminution de la masse volumique","Une perte de charge"],"answer":0},
+{"q":"Une transformation adiabatique réelle se distingue d’une transformation isentropique car :","choices":["Elle comporte des pertes irréversibles","Elle s’effectue à pression constante","Elle implique un échange thermique"],"answer":0},
+{"q":"Le principe de recul appliqué aux moteurs à réaction repose directement sur :","choices":["La conservation de la quantité de mouvement","La loi de Bernoulli","La continuité de l’écoulement"],"answer":0},
+{"q":"Dans les turbomachines, le débit volumique et le débit massique diffèrent principalement parce que :","choices":["La masse volumique du fluide n’est pas constante","La vitesse est variable","La pression statique est constante"],"answer":0},
+{"q":"Le choix d’un compresseur centrifuge sur un turbomoteur d’hélicoptère est motivé par :","choices":["Un fort taux de compression par étage et une grande compacité","Une meilleure efficacité à haute vitesse avion","Une réduction des contraintes thermiques"],"answer":0},
+{"q":"La section divergente de l’entrée d’air d’un GTR en croisière permet :","choices":["La conversion de vitesse en pression statique avant compression","La réduction directe du bruit rayonné","L’accélération du flux vers le compresseur"],"answer":0},
+{"q":"Dans un compresseur axial, un écoulement parallèle à l’axe moteur implique :","choices":["Une succession de hausses de pression par étages","Une accélération continue du flux","Une absence de variation de pression"],"answer":0},
+{"q":"L’EPR est un indicateur pertinent de poussée car il est directement lié :","choices":["À la variation de quantité de mouvement du flux moteur","Au régime mécanique N2","À la pression carburant injectée"],"answer":0},
+{"q":"Un turbomoteur (turboshaft) se distingue d’un turbopropulseur car il :","choices":["Délivre uniquement une puissance mécanique sur arbre","Produit une poussée résiduelle significative","Fonctionne sans turbine"],"answer":0},
+{"q":"La propulsion par réaction directe est caractérisée par :","choices":["L’éjection d’une masse de fluide accélérée vers l’arrière","La transmission d’un couple à une hélice","La conversion directe de pression en couple"],"answer":0},
+{"q":"Dans une chambre de combustion, l’injecteur est conçu pour pulvériser le carburant afin de :","choices":["Favoriser un mélange rapide et une combustion stable","Augmenter la pression totale","Réduire la température turbine"],"answer":0},
+{"q":"La conversion 1 bar ≈ 14,5 psi est utilisée car elle correspond à :","choices":["Une équivalence pression métrique / impériale","Une conversion débit / pression","Une approximation thermodynamique"],"answer":0},
+// Autres – Divers (niveau Part-66 très difficile)
+{"q":"Les travaux de Jean Delouvrier (Charles de Louvrié) concernent principalement :","choices":["Les premières recherches françaises sur la propulsion par réaction","Le développement industriel des turbofans civils","Les moteurs à pistons de forte puissance","Les turbines d’hélicoptères modernes"],"answer":0 },
+{"q":"Le premier avion à réaction français mis en service après-guerre illustre principalement :","choices":["La transition du moteur à pistons vers la propulsion par réaction","L’introduction du double flux civil","La propulsion supersonique civile"],"answer":0},
+{"q":"Dans une turbomachine, l’ensemble des aubages mobiles constitue le rotor car il :","choices":["Reçoit et transmet l’énergie mécanique","Redresse l’écoulement en sortie","Stabilise uniquement le flux"],"answer":0},
+{"q":"L’autonomie typique des blocs batteries de secours (EPSU) est limitée volontairement afin de :","choices":["Assurer l’évacuation réglementaire sans pénaliser la masse","Garantir une alimentation cabine prolongée","Maintenir les systèmes avioniques"],"answer":0},
+{"q":"Les projecteurs de type « logo light » sont installés sur l’empennage principalement pour :","choices":["Assurer la visibilité de l’identification compagnie au sol","Éclairer les commandes de vol","Signaler une situation d’urgence"],"answer":0},
+{"q":"Le BITE est intégré aux systèmes avion afin de permettre :","choices":["Un auto-contrôle et une aide au diagnostic maintenance","Une réparation automatique des défauts","Une surveillance temps réel par l’équipage uniquement"],"answer":0},
+{"q":"Une architecture « fail operational » impose la redondance des calculateurs CMC afin de :","choices":["Maintenir la fonction malgré une défaillance","Arrêter le système en cas de panne","Limiter les performances avion"],"answer":0},
+{"q":"Le CMS distingue un mode normal et un mode interactif afin de :","choices":["Séparer l’exploitation automatique de l’accès maintenance","Isoler les fonctions vol et sol","Permettre un contrôle manuel équipage"],"answer":0},
+{"q":"Les pannes de classe ayant un impact immédiat sur le vol sont classées car elles :","choices":["Modifient les capacités opérationnelles de l’aéronef","N’affectent que la maintenance future","Sont uniquement enregistrées"],"answer":0},
+{"q":"L’affichage en temps réel des pannes de classe 1 sur l’ECAM permet principalement :","choices":["Une prise de décision opérationnelle immédiate","Une préparation maintenance au sol","Un archivage post-vol"],"answer":0},
+{"q":"Une panne de classe non annoncée à l’équipage est définie comme telle car :","choices":["Elle n’a pas d’impact opérationnel sur le vol","Elle est corrigée automatiquement","Elle concerne uniquement le confort cabine"],"answer":0},
+{"q":"La capacité mémoire d’un système de type 1 (64 legs) est définie afin de :","choices":["Permettre une analyse historique pertinente en maintenance","Conserver l’intégralité de la vie avion","Stocker les données en temps réel uniquement"],"answer":0},
+{"q":"Un système de type 3 est dit discret car :","choices":["Il ne génère pas de message cockpit et nécessite un accès maintenance","Il est dépourvu de toute fonction de test","Il fonctionne uniquement en mode manuel"],"answer":0},
+{"q":"Le Post Flight Report (PFR) est exploité en maintenance car il regroupe :","choices":["Les événements et défauts significatifs du dernier vol","Les données de planification équipage","Les paramètres moteurs en continu"],"answer":0},
+{"q":"Le mode interactif du CMS est volontairement limité au sol afin de :","choices":["Éviter toute action maintenance impactant la sécurité en vol","Réduire la charge électrique","Garantir la disponibilité du système"],"answer":0},
+{"q":"L’utilisation prolongée des projecteurs d’atterrissage au sol est évitée principalement car :","choices":["Le refroidissement par vent relatif est insuffisant","Ils consomment excessivement les batteries","Ils provoquent une gêne visuelle"],"answer":0},
+{"q":"Le tritium est utilisé dans les balisages auto-luminescents car il :","choices":["Émet de la lumière sans alimentation électrique externe","Possède une demi-vie très courte","Peut être rechargé électriquement"],"answer":0}
+];
+
+// 👉 Tu peux coller ici ta grosse liste complète : le code fonctionne pareil.
+
+// ====== Scores (stock 30, affichage 10)
+function loadScores(){ try{ return JSON.parse(localStorage.getItem(LS_SCORES)||'[]') }catch{ return [] } }
+function saveScores(list){ localStorage.setItem(LS_SCORES, JSON.stringify(list.slice(-30))); }
+function addScoreRow(entry){
+  const pct = entry.total ? Math.round(entry.score/entry.total*1000)/10 : 0;
+  const tr=document.createElement('tr');
+  tr.innerHTML = `<td>${entry.name||'—'}</td><td>${entry.score}/${entry.total}</td><td>${pct}%</td><td>${entry.when}</td>`;
+  $('#scoreTableBody').appendChild(tr);
+}
+function renderScoreTable(){
+  const body=$('#scoreTableBody'); body.innerHTML='';
+  const list=loadScores(); const view=list.slice(-10).reverse(); // 10 derniers, récents en haut
+  view.forEach(addScoreRow);
+}
+$('#clearScores').onclick=()=>{ localStorage.removeItem(LS_SCORES); renderScoreTable(); drawChart(); };
+
+// ====== Graph progression (utilise jusqu’à 30 entrées)
+function drawChart(){
+  const svg=$('#chart'); svg.innerHTML='';
+  const list=loadScores(); const values=list.map(e=>Math.round(e.score/e.total*100));
+  const N=values.length, W=320, H=120, pad=12;
+  // axes
+  const ax=document.createElementNS('http://www.w3.org/2000/svg','path');
+  ax.setAttribute('d',`M${pad},${H-pad}H${W-pad} M${pad},${pad}V${H-pad}`);
+  ax.setAttribute('stroke','currentColor'); ax.setAttribute('fill','none'); ax.setAttribute('opacity','0.4');
+  svg.appendChild(ax);
+  if(!N) return;
+  const start=Math.max(0,N-20), arr=values.slice(start);
+  const step=(W-2*pad)/Math.max(1,arr.length-1);
+  const pts=arr.map((v,k)=>[pad+k*step,(H-pad)-(v/100)*(H-2*pad)]);
+  const d=pts.map((p,k)=>(k?'L':'M')+p[0]+','+p[1]).join(' ');
+  const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+  path.setAttribute('d',d); path.setAttribute('fill','none'); path.setAttribute('stroke','currentColor');
+  svg.appendChild(path);
+}
+renderScoreTable(); drawChart();
+
+// ====== Timer
+function clearTick(){ if(tickHandle){ clearInterval(tickHandle); tickHandle=null; } }
+function setTimer(v){ timerEl.textContent=v; }
+function startTick(){
+  clearTick(); timeLeft=perQ; setTimer(timeLeft);
+  tickHandle=setInterval(()=>{ if(paused) return; timeLeft--; setTimer(Math.max(0,timeLeft)); if(timeLeft<=0){ clearTick(); onTimeout(); } },1000);
+}
+
+// ====== Progress + badge
+function renderProgress(){
+  const total=filteredQuestions.length;
+  progressTxt.textContent=`Question ${Math.min(i+1,total)}/${total}`;
+  const pct = total? Math.round(i/total*100) : 0;
+  progressBar.style.width = pct+'%';
+}
+function showBadge(kind){
+  const el=$('#prevBadge'); el.className='badge-status';
+  if(!kind){ el.style.display='none'; return; }
+  el.style.display='inline-block';
+  el.textContent = kind==='ok'?'OK':(kind==='bad'?'FAUX':'BOF');
+  el.classList.add(kind==='ok'?'badge-ok':(kind==='bad'?'badge-bad':'badge-bof'));
+  setTimeout(()=>{ el.style.display='none'; }, 1500);
+}
+
+// ====== Rendu question (mélange des réponses)
+function renderQuestion(){
+  const total=filteredQuestions.length;
+  if(i>=total){ finishGame(); return; }
+
+  const current=filteredQuestions[questionOrder[i]];
+  const shuffled = current.choices.map((text,idx)=>({text,idx})).sort(()=>Math.random()-0.5);
+  current.shuffledMap = shuffled.map(o=>o.idx);
+  current.shuffledAnswer = shuffled.findIndex(o=>o.idx===current.answer);
+
+  qEl.textContent=current.q;
+  renderProgress();
+  feedbackEl.textContent='';
+  choicesEl.innerHTML='';
+
+  shuffled.forEach((item, idx)=>{
+    const b=document.createElement('button');
+    b.className='opt'; b.textContent=item.text;
+    b.addEventListener('click', ()=> onSelect(idx, b));
+    choicesEl.appendChild(b);
+  });
+
+  if(running && !paused) startTick();
+}
+function highlightGood(){
+  const cur=filteredQuestions[questionOrder[i]];
+  const good = (cur && typeof cur.shuffledAnswer==='number') ? cur.shuffledAnswer : cur.answer;
+  document.querySelectorAll('.opt').forEach((b,idx)=>{ b.disabled=true; if(idx===good) b.classList.add('correct'); });
+}
+function disableAll(){ document.querySelectorAll('.opt').forEach(b=>b.disabled=true); }
+
+// ====== Sélection / Timeout
+function onSelect(idx, btn){
+  if(!running || paused) return;
+  clearTick();
+  const curQ=filteredQuestions[questionOrder[i]];
+  const goodShuffled = (typeof curQ.shuffledAnswer==='number') ? curQ.shuffledAnswer : curQ.answer;
+  const pickedOriginal = Array.isArray(curQ.shuffledMap) ? curQ.shuffledMap[idx] : idx;
+
+  // log pour le résumé
+  answersLog[i] = {
+    index:i, q:curQ.q, choices:curQ.choices.slice(),
+    correctIndex:curQ.answer, pickedIndex:pickedOriginal,
+    correct:(idx===goodShuffled), timedOut:false
+  };
+  buildSummary(); // ✅ update live
+
+  if(mode==='TRAIN'){
+    highlightGood();
+    if(idx===goodShuffled){
+      score++; scoreEl.textContent=score;
+      feedbackEl.innerHTML = `<span class="ok"><b>Bonne réponse !</b></span>`;
+      showBadge('ok');
+    }else{
+      btn.classList.add('wrong');
+      feedbackEl.innerHTML = `<span class="bad"><b>Faux.</b></span>`;
+      showBadge('bad');
+    }
+  }else{
+    disableAll(); // examen : pas de correction immédiate
+  }
+
+  setTimeout(()=>{ i++; renderQuestion(); }, 800);
+}
+function onTimeout(){
+  if(!running) return;
+  const curQ=filteredQuestions[questionOrder[i]];
+  answersLog[i] = {
+    index:i, q:curQ.q, choices:curQ.choices.slice(),
+    correctIndex:curQ.answer, pickedIndex:null, correct:false, timedOut:true
+  };
+  buildSummary(); // ✅ update live
+  if(mode==='TRAIN'){
+    highlightGood();
+    feedbackEl.innerHTML = `<span class="muted"><b>Temps écoulé.</b></span>`;
+    showBadge('bad');
+  }else{
+    disableAll();
+  }
+  setTimeout(()=>{ i++; renderQuestion(); }, 800);
+}
+
+// ====== Sélection des questions
+function buildFilteredQuestions(){
+  // Utiliser TOUTES les questions disponibles
+  const arr = shuffle(QUESTIONS.map((q, idx) => ({ q, idx })));
+  filteredQuestions = arr.map(o => o.q);
+  questionOrder = shuffle([...filteredQuestions.keys()]);
+}
+
+
+// ====== Démarrer / Pause / Stop
+function resetState(){
+  running=false; paused=false; i=0; score=0; answersLog=[];
+  scoreEl.textContent='0'; clearTick(); timerEl.textContent='0';
+  progressBar.style.width='0%'; progressTxt.textContent='Question 0/0';
+  qEl.textContent='Clique sur Démarrer'; choicesEl.innerHTML=''; feedbackEl.textContent='';
+  $('#summaryCard').style.display='block';
+  $('#summaryStats').innerHTML = '<span class="muted">En attente…</span>';
+  $('#summaryList').innerHTML = '<span class="muted">Aucune réponse pour le moment.</span>';
+}
+function startGame(fromSnapshot=false){
+  mode = 'TRAIN';
+  perQ = 15; // 10 secondes fixes par question	
+  if(!fromSnapshot) buildFilteredQuestions();
+  running=true; paused=false; i=0; score=0; answersLog=[];
+  renderQuestion();
+  $('#pauseBtn').disabled=false; $('#stopBtn').disabled=false;
+  saveSnapshot();
+}
+$('#startBtn').onclick=()=>{ resetState(); startGame(false); };
+$('#pauseBtn').onclick=()=>{
+  if(!running) return;
+  paused = !paused;
+  $('#pauseBtn').textContent = paused? 'Reprendre' : 'Pause';
+  if(!paused) startTick();
+  saveSnapshot();
+};
+$('#stopBtn').onclick=()=> finishGame();
+
+// ====== Résumé + enregistrement du score
+function recordFinalScore(){
+  const name = (pseudoInput.value||'').trim() || 'Anonyme';
+  const entry = { name, score, total: filteredQuestions.length, when: nowStamp() };
+
+  // garder l'historique détaillé pour ce QCM
+  const list = loadScores();
+  list.push(entry);
+  saveScores(list);
+
+  // calcul du pourcentage actuel
+  const pct = entry.total ? (entry.score / entry.total * 100) : 0;
+  const pctTxt = Math.round(pct * 10) / 10; // ex: 82.5
+  const currentSimple = `${name} ${pctTxt}%`;
+
+  // --- BEST SCORE POUR LE SOMMAIRE ---
+  // Lire l'ancien meilleur s'il existe
+  const prevSimple = localStorage.getItem('score_qcmgene_v1') || '';
+  // Extraire le pourcentage numérique de l'ancien (ex "Adrien 82.5%" -> 82.5)
+  let prevPct = -1;
+  const m = prevSimple.match(/([0-9]+(?:\.[0-9]+)?)%/);
+  if (m) {
+    prevPct = parseFloat(m[1]);
+  }
+
+  // Si pas d'ancien ou si le pourcentage actuel est meilleur -> on remplace
+  if (pct > prevPct) {
+    localStorage.setItem('score_qcmgene_v1', currentSimple);
+  }
+
+  // rafraîchir affichage interne
+  renderScoreTable();
+  drawChart();
+}
+
+function buildSummary(){
+  const total = filteredQuestions.length || 0;
+
+  let ok=0, bad=0, to=0, answered=0;
+
+  const lines = (answersLog || [])
+    .filter(r => r) // uniquement les questions déjà loggées
+    .map((r, idx)=> {
+      answered++;
+
+      const corr = r.choices[r.correctIndex];
+      const user = r.pickedIndex===null ? '(aucune/temps)' : r.choices[r.pickedIndex];
+
+      if(r.correct) ok++; else if(r.timedOut) to++; else bad++;
+
+      const cls = r.correct ? 'ok' : 'bad';
+      return `<div class="${cls}">
+        Q${r.index+1}. ${r.q}
+        <div class="small">Ta réponse: <b>${user}</b> — Corr: <b>${corr}</b></div>
+      </div>`;
+    }).join('');
+
+  $('#summaryStats').innerHTML =
+    `Score: <b>${score}</b> / ${total}
+     &nbsp; | &nbsp; Répondu: <b>${answered}</b> / ${total}
+     &nbsp; | &nbsp; OK: <span class="ok">${ok}</span>
+     – Faux: <span class="bad">${bad}</span>
+     – Temps: <span class="bad">${to}</span>`;
+
+  $('#summaryList').innerHTML = lines || '<span class="muted">Aucune réponse pour le moment.</span>';
+}
+function finishGame(){
+  if(!running) return;
+  clearTick(); running=false; paused=false;
+  $('#pauseBtn').disabled=true; $('#stopBtn').disabled=true;
+
+  if(mode==='EXAM'){
+    score = answersLog.reduce((acc,r)=> acc + (r.correct?1:0), 0);
+    scoreEl.textContent=score;
+  }
+  buildSummary();
+  $('#summaryCard').style.display='block';
+  recordFinalScore();
+  localStorage.removeItem(LS_SNAPSHOT);
+}
+$('#printSummary').onclick=()=>window.print();
+$('#closeSummary').onclick=()=>$('#summaryCard').style.display='none';
+
+// ====== Snapshot (reprendre une partie)
+function saveSnapshot(){
+  if(!running) return;
+  const snap={ t:Date.now(), mode, perQ, i, score, filteredQuestions, questionOrder, answersLog };
+  localStorage.setItem(LS_SNAPSHOT, JSON.stringify(snap));
+}
+function loadSnapshot(){ try{ return JSON.parse(localStorage.getItem(LS_SNAPSHOT)||'null') }catch{ return null } }
+function applySnapshot(s){ mode=s.mode; perQ=s.perQ; i=s.i; score=s.score; filteredQuestions=s.filteredQuestions; questionOrder=s.questionOrder; answersLog=s.answersLog||[]; $('#mode').value=mode; $('#qSeconds').value=perQ; scoreEl.textContent=score; renderQuestion(); }
+(function maybeShowResume(){
+  const s=loadSnapshot(); if(!s) return;
+  const btn=$('#resumeBtn'); btn.style.display='inline-block';
+  btn.onclick=()=>{ btn.style.display='none'; running=true; paused=false; applySnapshot(s); $('#pauseBtn').disabled=false; $('#stopBtn').disabled=false; startTick(); };
+})();
+
+// ====== Wire + boot
+
+
+
+(function boot(){ progressTxt.textContent='Question 0/0'; timerEl.textContent='0'; renderScoreTable(); drawChart(); })();
+</script>
+</body>
+</html>
+
+

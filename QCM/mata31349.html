@@ -114,12 +114,15 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
 @media (max-width:640px){
   .grid{grid-template-columns:1fr}
 }
+
 </style>
 </head>
 <body>
+  
   <div class="card main">
     <div class="row" style="justify-content:space-between">
-      <h1>✈️ ATA 31 - 34 Chpt 9</h1>   
+      <h1>✈️ ATA 31 - 34 Chpt 9</h1>
+      
       <button id="themeToggle" class="btn-gray" title="Changer de thème">🌙/☀️</button>
     <button id="homeBtn" class="btn-gray" title="Retour à l'accueil">🏠 Accueil</button>
     </div>
@@ -128,7 +131,7 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
     window.location.href = "https://adpmt.github.io/QCM-ADPMT/";
     });
     </script>
-
+    
     <!-- Outils -->
     <div class="row">
       <div style="min-width:160px">
@@ -160,11 +163,12 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
         <button id="pauseBtn" class="btn-gray" disabled>Pause</button>
         <button id="stopBtn" class="btn-gray" disabled>Stop</button>
         <button id="resumeBtn" class="btn-gray" style="display:none">Reprendre</button>
+        <button id="showSummaryBtn" class="btn"style="display:none;margin-top:8px">  📊 Afficher le résumé</button>
       </div>
     </div>
 
     <!-- Résumé -->
-    <div id="summaryCard" class="card" style="margin-top:10px;display:none">
+    <div id="summaryCard" class="card" style="margin-top:10px;display:block">
       <h3 style="margin:0 0 6px">Résumé</h3>
       <div id="summaryStats" class="muted"></div>
       <div id="summaryList" class="muted" style="height:220px;overflow:auto;margin-top:8px"></div>
@@ -218,9 +222,9 @@ $('#themeToggle').onclick=()=>{
 };
 
 // ====== Storage keys
-const LS_SCORES='ata31349_scores_v2';
-const LS_PSEUDO='ata31349_pseudo_v2';
-const LS_SNAPSHOT='ata31349_snapshot_v1';
+const LS_SCORES='mata31349_scores_v2';
+const LS_PSEUDO='mata31349_pseudo_v2';
+const LS_SNAPSHOT='mata31349_snapshot_v1';
 
 // ====== État
 let running=false, paused=false, i=0, score=0;
@@ -235,7 +239,7 @@ const pseudoInput=$('#pseudoInput'); pseudoInput.value=localStorage.getItem(LS_P
 pseudoInput.addEventListener('change',()=>localStorage.setItem(LS_PSEUDO,pseudoInput.value.trim()));
 
 // ====== Questions (exemple) — remplace/complète par ta liste complète si besoin
- let QUESTIONS = [
+let QUESTIONS = [
   { "q": "À quoi sert le MCDU (Multipurpose Control Display Unit) ?", 
     "choices": ["À contrôler les volets hypersustentateurs", "À mesurer la vitesse air", "À gérer les systèmes de navigation et de maintenance", "À activer le pilote automatique"], 
     "answer": 2 },
@@ -316,8 +320,6 @@ pseudoInput.addEventListener('change',()=>localStorage.setItem(LS_PSEUDO,pseudoI
     "choices": ["Central Voltage Regulator", "Cockpit Voice Recorder", "Command Visual Recorder", "Control Vibration Receiver"], 
     "answer": 1 }
 ];
-
-;
 // 👉 Tu peux coller ici ta grosse liste complète : le code fonctionne pareil.
 
 // ====== Scores (stock 30, affichage 10)
@@ -426,6 +428,7 @@ function onSelect(idx, btn){
     correctIndex:curQ.answer, pickedIndex:pickedOriginal,
     correct:(idx===goodShuffled), timedOut:false
   };
+  buildSummary(); // ✅ update live
 
   if(mode==='TRAIN'){
     highlightGood();
@@ -451,6 +454,7 @@ function onTimeout(){
     index:i, q:curQ.q, choices:curQ.choices.slice(),
     correctIndex:curQ.answer, pickedIndex:null, correct:false, timedOut:true
   };
+  buildSummary(); // ✅ update live
   if(mode==='TRAIN'){
     highlightGood();
     feedbackEl.innerHTML = `<span class="muted"><b>Temps écoulé.</b></span>`;
@@ -476,7 +480,9 @@ function resetState(){
   scoreEl.textContent='0'; clearTick(); timerEl.textContent='0';
   progressBar.style.width='0%'; progressTxt.textContent='Question 0/0';
   qEl.textContent='Clique sur Démarrer'; choicesEl.innerHTML=''; feedbackEl.textContent='';
-  $('#summaryCard').style.display='none';
+  $('#summaryCard').style.display='block';
+  $('#summaryStats').innerHTML = '<span class="muted">En attente…</span>';
+  $('#summaryList').innerHTML = '<span class="muted">Aucune réponse pour le moment.</span>';
 }
 function startGame(fromSnapshot=false){
   mode = 'TRAIN';
@@ -496,6 +502,8 @@ $('#pauseBtn').onclick=()=>{
   saveSnapshot();
 };
 $('#stopBtn').onclick=()=> finishGame();
+$('#summaryCard').style.display = 'block';
+$('#showSummaryBtn').style.display = 'none';
 
 // ====== Résumé + enregistrement du score
 function recordFinalScore(){
@@ -514,7 +522,7 @@ function recordFinalScore(){
 
   // --- BEST SCORE POUR LE SOMMAIRE ---
   // Lire l'ancien meilleur s'il existe
-  const prevSimple = localStorage.getItem('score_ata31349_v1') || '';
+  const prevSimple = localStorage.getItem('score_mata31349_v1') || '';
   // Extraire le pourcentage numérique de l'ancien (ex "Adrien 82.5%" -> 82.5)
   let prevPct = -1;
   const m = prevSimple.match(/([0-9]+(?:\.[0-9]+)?)%/);
@@ -524,7 +532,7 @@ function recordFinalScore(){
 
   // Si pas d'ancien ou si le pourcentage actuel est meilleur -> on remplace
   if (pct > prevPct) {
-    localStorage.setItem('score_ata31349_v1', currentSimple);
+    localStorage.setItem('score_mata31349_v1', currentSimple);
   }
 
   // rafraîchir affichage interne
@@ -533,18 +541,37 @@ function recordFinalScore(){
 }
 
 function buildSummary(){
-  const total=filteredQuestions.length;
-  let ok=0, bad=0, to=0;
-  const lines = answersLog.map((r,idx)=>{
-    const corr=r.choices[r.correctIndex];
-    const user = r.pickedIndex===null ? '(aucune/temps)' : r.choices[r.pickedIndex];
-    if(r.correct) ok++; else if(r.timedOut) to++; else bad++;
-    const cls=r.correct?'ok':'bad';
-    return `<div class="${cls}">Q${idx+1}. ${r.q}<div class="small">Ta réponse: <b>${user}</b> — Corr: <b>${corr}</b></div></div>`;
-  }).join('');
-  $('#summaryStats').innerHTML = `Score: <b>${score}</b> / ${total} &nbsp; | &nbsp; OK: <span class="ok">${ok}</span> – Faux: <span class="bad">${bad}</span> – Temps: <span class="bad">${to}</span>`;
-  $('#summaryList').innerHTML = lines || '<span class="muted">Rien à afficher</span>';
+  const total = filteredQuestions.length || 0;
+
+  let ok=0, bad=0, to=0, answered=0;
+
+  const lines = (answersLog || [])
+    .filter(r => r) // uniquement les questions déjà loggées
+    .map((r, idx)=> {
+      answered++;
+
+      const corr = r.choices[r.correctIndex];
+      const user = r.pickedIndex===null ? '(aucune/temps)' : r.choices[r.pickedIndex];
+
+      if(r.correct) ok++; else if(r.timedOut) to++; else bad++;
+
+      const cls = r.correct ? 'ok' : 'bad';
+      return `<div class="${cls}">
+        Q${r.index+1}. ${r.q}
+        <div class="small">Ta réponse: <b>${user}</b> — Corr: <b>${corr}</b></div>
+      </div>`;
+    }).join('');
+
+  $('#summaryStats').innerHTML =
+    `Score: <b>${score}</b> / ${total}
+     &nbsp; | &nbsp; Répondu: <b>${answered}</b> / ${total}
+     &nbsp; | &nbsp; OK: <span class="ok">${ok}</span>
+     – Faux: <span class="bad">${bad}</span>
+     – Temps: <span class="bad">${to}</span>`;
+
+  $('#summaryList').innerHTML = lines || '<span class="muted">Aucune réponse pour le moment.</span>';
 }
+
 function finishGame(){
   if(!running) return;
   clearTick(); running=false; paused=false;
@@ -560,7 +587,17 @@ function finishGame(){
   localStorage.removeItem(LS_SNAPSHOT);
 }
 $('#printSummary').onclick=()=>window.print();
-$('#closeSummary').onclick=()=>$('#summaryCard').style.display='none';
+$('#closeSummary').onclick = () => {
+  $('#summaryCard').style.display = 'none';
+  $('#showSummaryBtn').style.display = 'inline-block';
+};
+$('#showSummaryBtn').onclick = () => {
+  $('#summaryCard').style.display = 'block';
+  $('#showSummaryBtn').style.display = 'none';
+};
+$('#summaryCard').style.display = 'block';
+$('#showSummaryBtn').style.display = 'none';
+
 
 // ====== Snapshot (reprendre une partie)
 function saveSnapshot(){
@@ -582,5 +619,8 @@ function applySnapshot(s){ mode=s.mode; perQ=s.perQ; i=s.i; score=s.score; filte
 
 (function boot(){ progressTxt.textContent='Question 0/0'; timerEl.textContent='0'; renderScoreTable(); drawChart(); })();
 </script>
+
 </body>
 </html>
+
+

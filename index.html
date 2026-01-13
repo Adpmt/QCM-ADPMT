@@ -74,7 +74,6 @@ header{
 
 /* Bouton thème */
 button{
-  cursor:pointer;
   border:none;
   border-radius:10px;
   padding:8px 10px;
@@ -311,9 +310,9 @@ const qcms = [
   { nom: "Th GTR & GTP Groupe Turbo Réacteur / Propulseur ✈️", fichier: "QCM/thgtrgtp.html", cle: "score_GTR_&_GTP_v1" },
   { nom: "Th Hélice ✈️", fichier: "QCM/thhelice.html", cle: "score_helice_v1" },
   { nom: "Dm ATA 70 à 80 ✈️", fichier: "QCM/dmata7080.html", cle: "score_dmata7080_v1" },
-  { nom: "Test instrumentation ✈️", fichier: "QCM/mata31strevie.html", cle: "score_mata31strevie_v1" },
+  { nom: "QCM Gene ✈️", fichier: "QCM/qcmgene.html", cle: "score_qcmgene_v1" },
   { nom: "Quiz Acronym A330 ✈️", fichier: "QCM/acronym330.html", cle: "acronym330_lastScore_v1" },
-  { nom: "Cockpit A330 ✈️", fichier: "learning-tools/cockpit-a330/index.html", cle: "cockpita330_lastScore_v1" }
+  //{ nom: "Cockpit A330 ✈️", fichier: "learning-tools/cockpit-a330/index.html", cle: "cockpita330_lastScore_v1" }
   // tu peux en ajouter d'autres ici
 ];
 
@@ -368,6 +367,107 @@ qcms.forEach(qcm => {
   a.appendChild(right);
   container.appendChild(a);
 });
+</script>
+<style>
+  html, body { cursor: none; }
+
+  #planeCursor{
+    position: fixed;
+    left:0; top:0;
+    width:50px; height:50px;
+    pointer-events:none;
+    z-index:999999;
+    transform: translate3d(-100px,-100px,0) rotate(0deg);
+    will-change: transform;
+    filter: drop-shadow(0 0 2px rgba(255,255,255,.6));
+    transform-origin: 50% 50%;
+  }
+
+</style>
+
+
+<img id="planeCursor" src="assets/cursors/plane.svg" alt="" />
+<div id="jetTrail" aria-hidden="true"></div>
+
+<script>
+(() => {
+  const plane = document.getElementById('planeCursor');
+  const trail = document.getElementById('jetTrail');
+
+  let x = 0, y = 0;      // position lissée avion
+  let tx = 0, ty = 0;   // position réelle souris
+
+  const SMOOTH = 0.22;
+  const HALF = 20; // moitié de la taille du SVG
+
+  const isTouch = matchMedia('(pointer: coarse)').matches;
+  if (isTouch) {
+    plane.style.display = 'none';
+    trail.style.display = 'none';
+    document.documentElement.style.cursor = '';
+    document.body.style.cursor = '';
+    return;
+  }
+
+  window.addEventListener('mousemove', e => {
+    tx = e.clientX;
+    ty = e.clientY;
+  }, { passive: true });
+
+  function raf() {
+    // Lissage position
+    x += (tx - x) * SMOOTH;
+    y += (ty - y) * SMOOTH;
+
+    // 👉 ANGLE = avion → curseur (même à l'arrêt)
+    const dx = tx - x;
+    const dy = ty - y;
+    const angle = Math.atan2(dy, dx) * 180 / Math.PI + 50
+
+    plane.style.transform =
+      `translate3d(${x - HALF}px, ${y - HALF}px, 0) rotate(${angle}deg)`;
+
+
+
+
+    requestAnimationFrame(raf);
+  }
+  requestAnimationFrame(raf);
+
+  window.addEventListener('mouseleave', () => {
+    plane.style.opacity = '0';
+    trail.style.opacity = '0';
+  });
+  window.addEventListener('mouseenter', () => {
+    plane.style.opacity = '1';
+    trail.style.opacity = '.85';
+  });
+})();
+</script>
+<style id="force-hide-cursor">
+  html, body { cursor: none !important; }
+
+  /* ultra spécifique pour battre cursor:pointer et même certains !important */
+  :root body,
+  :root body * ,
+  :root body *:hover,
+  :root body *:active,
+  :root body *:focus {
+    cursor: none !important;
+  }
+</style>
+
+<script>
+  // Force cursor none, même si certains éléments remettent cursor:pointer
+  document.addEventListener('mouseover', (e) => {
+    if (e && e.target && e.target.style) {
+      e.target.style.setProperty('cursor', 'none', 'important');
+    }
+  }, true);
+
+  // Force aussi sur html/body
+  document.documentElement.style.setProperty('cursor', 'none', 'important');
+  document.body.style.setProperty('cursor', 'none', 'important');
 </script>
 
 </body>
