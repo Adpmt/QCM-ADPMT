@@ -115,17 +115,68 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
   .grid{grid-template-columns:1fr}
 }
 
+@keyframes blinkRed {
+  0%, 100% { 
+    color: var(--bad);
+    transform: scale(1);
+  }
+  50% { 
+    color: #ff0000;
+    transform: scale(2.1);
+  }
+}
+
+.timer-blink {
+  animation: blinkRed 0.6s infinite;
+  font-weight: 800;
+}
+
+
 </style>
 </head>
 <body>
   
   <div class="card main">
-    <div class="row" style="justify-content:space-between">
-      <h1>✈️ QCM Final 180Q</h1>
-      
-      <button id="themeToggle" class="btn-gray" title="Changer de thème">🌙/☀️</button>
+    <div class="row" style="justify-content:space-between; align-items:center">
+  <h1>✈️ QCM</h1>
+
+  <div class="row">
+    <button id="qcmSettingsBtn" class="btn-gray" title="Paramètres QCM">⚙️ QCM</button>
+    <button id="themeToggle" class="btn-gray" title="Changer de thème">🌙/☀️</button>
     <button id="homeBtn" class="btn-gray" title="Retour à l'accueil">🏠 Accueil</button>
-    </div>
+    
+  </div>
+  
+</div>
+
+<!-- Drawer paramètres -->
+<div id="qcmDrawer" class="card" style="margin-top:10px; display:none">
+  <h3 style="margin:0 0 8px">Paramètres du QCM</h3>
+
+  <div class="row">
+    <label class="small" style="min-width:160px">Mode</label>
+    <select id="qcmModeSelect">
+      <option value="quota180" selected>180 questions (répartition par chapitres)</option>
+      <option value="free">Nombre libre (aléatoire global)</option>
+    </select>
+  </div>
+
+  <div class="row" id="freeCountRow" style="display:none">
+    <label class="small" style="min-width:160px">Nombre de questions</label>
+    <input id="qcmFreeCount" type="number" min="1" max="290" value="60" style="width:120px" />
+    <span class="muted small">(max 290)</span>
+  </div>
+
+  <div class="row" style="justify-content:flex-end">
+    <button id="qcmApplyBtn">Appliquer</button>
+    <button id="qcmCloseBtn" class="btn-gray">Fermer</button>
+  </div>
+
+  <div class="muted small" style="margin-top:8px">
+    ⚠️ Les paramètres sont pris en compte au prochain “Démarrer”.
+  </div>
+</div>
+
     <script>
     document.getElementById("homeBtn").addEventListener("click", () => {
     window.location.href = "https://adpmt.github.io/QCM-ADPMT/";
@@ -183,7 +234,7 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
   <div class="muted small">Affiche les 10 derniers (stocke 30 max).</div>
   <table>
     <thead>
-      <tr><th>Pseudo</th><th>Score</th><th>%</th><th>Date</th></tr>
+      <tr><th>Pseudo</th><th>Répondu / Total</th><th>% réussite</th><th>Date</th></tr>
     </thead>
     <tbody id="scoreTableBody"></tbody>
   </table>
@@ -221,6 +272,35 @@ $('#themeToggle').onclick=()=>{
   localStorage.setItem(THEME_KEY,nxt);
 };
 
+// ====== Drawer UI
+const drawer = $('#qcmDrawer');
+$('#qcmSettingsBtn').onclick = () => {
+  drawer.style.display = (drawer.style.display === 'none' ? 'block' : 'none');
+  // sync UI
+  $('#qcmModeSelect').value = qcmSettings.mode;
+  $('#qcmFreeCount').value = qcmSettings.freeCount;
+  $('#freeCountRow').style.display = (qcmSettings.mode === 'free') ? 'flex' : 'none';
+};
+
+$('#qcmCloseBtn').onclick = () => { drawer.style.display = 'none'; };
+
+$('#qcmModeSelect').onchange = (e) => {
+  const mode = e.target.value;
+  $('#freeCountRow').style.display = (mode === 'free') ? 'flex' : 'none';
+};
+
+$('#qcmApplyBtn').onclick = () => {
+  const mode = $('#qcmModeSelect').value;
+  const freeCount = parseInt($('#qcmFreeCount').value, 10);
+
+  qcmSettings.mode = mode;
+  qcmSettings.freeCount = Number.isFinite(freeCount) ? Math.max(1, Math.min(290, freeCount)) : 60;
+
+  saveQcmSettings();
+  drawer.style.display = 'none';
+};
+
+
 // ====== Storage keys
 const LS_SCORES='qcm180_scores_v2';
 const LS_PSEUDO='qcm180_pseudo_v2';
@@ -231,6 +311,24 @@ let running=false, paused=false, i=0, score=0;
 let questionOrder=[], filteredQuestions=[];
 let timeLeft=0, tickHandle=null, mode='TRAIN', perQ=15;
 let answersLog=[];
+// ====== Paramètres QCM
+const LS_QCM_SETTINGS = 'qcm_settings_v1';
+let qcmSettings = { mode: 'quota180', freeCount: 60 };
+
+function loadQcmSettings(){
+  try{
+    const s = JSON.parse(localStorage.getItem(LS_QCM_SETTINGS) || 'null');
+    if(s && typeof s === 'object'){
+      qcmSettings = { ...qcmSettings, ...s };
+    }
+  }catch{}
+}
+function saveQcmSettings(){
+  localStorage.setItem(LS_QCM_SETTINGS, JSON.stringify(qcmSettings));
+}
+
+loadQcmSettings();
+
 
 // ====== DOM
 const qEl=$('#question'), choicesEl=$('#choices'), feedbackEl=$('#feedback');
@@ -238,267 +336,350 @@ const timerEl=$('#timer'), scoreEl=$('#score'), progressTxt=$('#progressTxt'), p
 const pseudoInput=$('#pseudoInput'); pseudoInput.value=localStorage.getItem(LS_PSEUDO)||'';
 pseudoInput.addEventListener('change',()=>localStorage.setItem(LS_PSEUDO,pseudoInput.value.trim()));
 
+const CHAPTERS = [
+  "Systèmes",
+  "Propulsion",
+  "Réglementation",
+  "Électricité",
+  "Structures",
+  "Maintenance",
+  "Facteurs humains",
+  "Aérodynamique",
+  "Masse & centrage"
+];
 // ====== Questions (exemple) — remplace/complète par ta liste complète si besoin
 let QUESTIONS = [
 // chapitre SYSTÈMES
-{ "q": "Sur un avion transport, un circuit hydraulique « 3000 psi » correspond approximativement à :", "choices": ["210 bar", "250 bar", "280 bar", "310 bar"], "answer": 0 },
-{ "q": "La fonction principale d’un accumulateur hydraulique est :", "choices": ["Amortir les pulsations et fournir un débit de pointe", "Maintenir la température du fluide", "Assurer la filtration fine du circuit", "Créer une dépression dans la ligne retour"], "answer": 0 },
-{ "q": "Un accumulateur à vessie est typiquement préchargé avec :", "choices": ["Azote (N2)", "Oxygène (O2)", "Air ambiant", "Hélium (He)"], "answer": 0 },
-{ "q": "Une pompe hydraulique entraînée moteur (EDP) est généralement :", "choices": ["À cylindrée variable et régulée en pression", "À cylindrée fixe et régulée en débit", "À turbine et régulée en température", "À engrenages et régulée en cavitation"], "answer": 0 },
-{ "q": "Dans un système hydraulique régulé, la « case drain line » d’une pompe sert surtout à :", "choices": ["Évacuer les fuites internes et lubrifier/refroidir la pompe", "Isoler la pompe en cas de surpression", "Assurer le retour HP vers le réservoir", "Purger l’air dissous du fluide"], "answer": 0 },
-{ "q": "La fonction typique d’un Pressure Relief Valve (PRV) est :", "choices": ["Protéger le circuit en limitant la pression maxi", "Maintenir une pression constante en modulant le débit pompe", "Empêcher l’inversion de sens d’écoulement", "Filtrer les particules ferreuses"], "answer": 0 },
-{ "q": "Un clapet anti-retour (check valve) est destiné à :", "choices": ["Autoriser l’écoulement dans un seul sens", "Limiter la pression de service", "Réguler la température fluide", "Séparer deux circuits sans échange de pression"], "answer": 0 },
-{ "q": "Une vanne de priorisation (priority valve) a pour rôle :", "choices": ["Assurer l’alimentation des consommateurs critiques en cas de débit limité", "Empêcher la cavitation en aspiration pompe", "Équilibrer automatiquement les réservoirs carburant", "Dériver le retour hydraulique vers un échangeur thermique"], "answer": 0 },
-{ "q": "Un filtre hydraulique avec indicateur « ΔP » signale :", "choices": ["Une perte de charge élevée à travers le filtre (colmatage)", "Une température fluide trop basse", "Une surpression en sortie de pompe", "Une contamination uniquement ferreuse"], "answer": 0 },
-{ "q": "Une soupape de by-pass de filtre hydraulique sert à :", "choices": ["Assurer la continuité d’alimentation si le filtre est colmaté", "Renvoyer le fluide directement au réservoir en permanence", "Augmenter la finesse de filtration", "Maintenir la pression à 3000 psi"], "answer": 0 },
-{ "q": "Sur un circuit hydraulique, la cavitation apparaît le plus souvent :", "choices": ["À l’aspiration pompe (pression trop faible / pertes de charge)", "En aval d’un PRV (pression trop élevée)", "Uniquement dans la ligne retour", "Après l’échangeur thermique (température trop basse)"], "answer": 0 },
-{ "q": "Une RAT (Ram Air Turbine) sur avion transport est conçue pour :", "choices": ["Fournir une puissance de secours (hydraulique et/ou électrique) en cas de pertes majeures", "Augmenter la vitesse en croisière", "Remplacer l’APU au sol", "Maintenir la température carburant"], "answer": 0 },
-{ "q": "Un PTU (Power Transfer Unit) permet :", "choices": ["De transférer de la puissance hydraulique entre deux circuits sans mélange de fluide", "De transférer du fluide hydraulique d’un réservoir à l’autre", "De pressuriser la cabine en secours", "D’assister le démarrage moteur par air"], "answer": 0 },
-{ "q": "Concernant Skydrol, l’affirmation correcte est :", "choices": ["Fluide phosphate ester : agressif pour certaines peintures/peaux, joints spécifiques requis", "Fluide minéral : compatible universellement avec tous joints", "Fluide glycol : utilisé principalement dans les circuits carburant", "Fluide silicone : dédié aux freins carbone uniquement"], "answer": 0 },
-
-{ "q": "La fonction principale des « boost pumps » carburant est :", "choices": ["Assurer une pression positive en alimentation et éviter la cavitation/air ingestion", "Mesurer la quantité carburant", "Refroidir les IDG", "Augmenter le taux de dilution du carburant"], "answer": 0 },
-{ "q": "Un système crossfeed permet :", "choices": ["D’alimenter un moteur depuis un autre réservoir/collecteur et d’équilibrer selon procédures", "D’augmenter automatiquement la pression fuel en montée", "De purger l’eau du carburant en vol", "De commander la mise en drapeau de l’hélice"], "answer": 0 },
-{ "q": "Un « fuel scavenge/transfer » a typiquement pour but :", "choices": ["De récupérer du carburant résiduel (ex: réservoir central) vers les réservoirs d’aile", "De pressuriser les réservoirs en continu", "De refroidir les packs de conditionnement", "De filtrer le carburant en micro-particules uniquement"], "answer": 0 },
-{ "q": "La mesure de quantité carburant sur avion transport est le plus souvent basée sur :", "choices": ["Des sondes capacitives (capacitance probes) + calculateur", "Un flotteur mécanique direct par jauge", "Un débitmètre moteur uniquement", "Une mesure de densité par hygromètre"], "answer": 0 },
-{ "q": "La mise à l’air (venting) d’un réservoir carburant sert principalement à :", "choices": ["Éviter surpression/dépression et permettre un débit carburant stable", "Augmenter la température carburant", "Empêcher toute formation de vapeur", "Augmenter la masse volumique en vol"], "answer": 0 },
-{ "q": "La fonction d’un « fuel shutoff valve » (spar valve / engine fuel valve) est :", "choices": ["Isoler l’alimentation carburant moteur (sécurité incendie / arrêt moteur)", "Réguler le mélange air/carburant en combustion", "Équilibrer automatiquement les réservoirs", "Assurer le dégivrage des entrées d’air"], "answer": 0 },
-
-{ "q": "Le bleed air sur turboréacteur est prélevé typiquement :", "choices": ["Sur un ou plusieurs étages du compresseur (HP/IP selon architecture)", "En sortie de turbine BP", "Après la tuyère (flux froid)", "Dans le réservoir hydraulique pressurisé"], "answer": 0 },
-{ "q": "La fonction d’une PRV/HPV (Pressure Regulating/High Pressure Valve) sur un système bleed est :", "choices": ["Réguler la pression/limiter le débit et protéger les utilisateurs", "Mesurer la température cabine", "Ouvrir la vanne carburant en croisière", "Synchroniser l’APU avec l’IDG"], "answer": 0 },
-{ "q": "Le « pack » de conditionnement d’air comprend typiquement :", "choices": ["Des échangeurs + ACM (Air Cycle Machine) + séparateur d’eau", "Une pompe hydraulique + accumulateur", "Un carburateur + magnétos", "Un IDG + redresseur"], "answer": 0 },
-{ "q": "La pressurisation cabine est contrôlée principalement par :", "choices": ["Une ou plusieurs outflow valves modulées par un contrôleur", "Les packs uniquement par variation de débit", "La vanne de crossfeed carburant", "Le PRV hydraulique principal"], "answer": 0 },
-{ "q": "Une « safety valve » de pressurisation (valve positive/negative relief) sert à :", "choices": ["Protéger la structure contre une surpression ou une dépression excessive", "Augmenter la pression cabine en montée", "Réchauffer l’air cabine", "Évacuer l’humidité des packs"], "answer": 0 },
-
-{ "q": "Sur un freinage avec anti-skid, le système agit en modulant :", "choices": ["La pression hydraulique vers chaque frein via une valve de contrôle", "Le couple moteur via FADEC", "La géométrie du train (toe-in/toe-out)", "Le crossfeed carburant"], "answer": 0 },
-{ "q": "Un capteur typique anti-skid mesure :", "choices": ["La vitesse de rotation de roue (wheel speed transducer)", "La pression d’azote amortisseur", "La température EGT", "L’angle d’attaque"], "answer": 0 },
-{ "q": "Le « normal braking » est généralement alimenté par :", "choices": ["Un circuit hydraulique principal dédié (ex: Green/Yellow/Blue selon avion)", "Le système pneumatique bleed air", "L’APU uniquement", "La RAT uniquement"], "answer": 0 },
-{ "q": "Le frein de parking sur avion transport est le plus souvent :", "choices": ["Une fonction hydraulique avec verrouillage/valve dédiée et maintien de pression", "Un frein purement mécanique à câble", "Un frein uniquement électrique par résistance", "Un frein dépendant du crossfeed carburant"], "answer": 0 },
-
-{ "q": "Le séquencement du train d’atterrissage est assuré typiquement par :", "choices": ["Des capteurs de position + logique (LGCIU) + valves/séquenceurs", "Le PRV hydraulique uniquement", "Le système anti-skid", "Le système de pressurisation cabine"], "answer": 0 },
-{ "q": "Un « downlock » est :", "choices": ["Un verrouillage mécanique train sorti", "Une valve de limitation de pression frein", "Une pompe d’appoint carburant", "Un capteur de température bleed"], "answer": 0 },
-{ "q": "Un amortisseur oléopneumatique fonctionne grâce à :", "choices": ["La compression du gaz + passage d’huile calibré (amortissement)", "Un ressort acier uniquement", "Une vis sans fin et engrenages", "Un circuit électrique PWM"], "answer": 0 },
-
-{ "q": "La protection incendie moteur (transport) repose souvent sur :", "choices": ["Deux boucles de détection thermique continues (redondance) + logique", "Un capteur capacitif carburant", "Une sonde Pitot chauffée", "Un indicateur de colmatage filtre hydraulique"], "answer": 0 },
-{ "q": "L’agent extincteur typique des bouteilles moteur (transport) est :", "choices": ["Halon (ou équivalent) / agent propre", "Oxygène", "Azote liquide", "Vapeur d’eau"], "answer": 0 },
-{ "q": "L’APU est principalement utilisé pour :", "choices": ["Fournir énergie électrique et/ou pneumatique au sol (et parfois en vol)", "Fournir la portance au décollage", "Refroidir les freins par air pulsé", "Réguler la pression hydraulique à 3000 psi"], "answer": 0 },
-
-{ "q": "Un système anti-ice « thermal » sur ailes/entrées d’air utilise le plus souvent :", "choices": ["De l’air chaud (bleed) régulé", "Un liquide glycol en pulvérisation continue", "Le carburant directement pulvérisé", "Une résistance électrique uniquement sur grande surface"], "answer": 0 },
-{ "q": "Le dégivrage d’une sonde Pitot sur avion transport est typiquement :", "choices": ["Électrique par résistance chauffante", "Hydraulique par échangeur", "Pneumatique par Venturi", "Mécanique par vibration"], "answer": 0 },
+{ "chapter":"Systèmes","q": "Sur un avion transport, un circuit hydraulique « 3000 psi » correspond approximativement à :", "choices": ["250 bar", "280 bar", "210 bar", "310 bar"], "answer": 2 }, 
+{ "chapter":"Systèmes","q": "La fonction principale d’un accumulateur hydraulique est :", "choices": ["Maintenir la température du fluide", "Amortir les pulsations et fournir un débit de pointe", "Assurer la filtration fine du circuit", "Créer une dépression dans la ligne retour"], "answer": 1 },
+{ "chapter":"Systèmes","q": "Un accumulateur à vessie est typiquement préchargé avec :", "choices": ["Oxygène (O2)", "Air ambiant", "Hélium (He)", "Azote (N2)"], "answer": 3 },
+{ "chapter":"Systèmes","q": "Une pompe hydraulique entraînée moteur (EDP) est généralement :", "choices": ["À cylindrée variable et régulée en pression", "À cylindrée fixe et régulée en débit", "À turbine et régulée en température", "À engrenages et régulée en cavitation"], "answer": 0 },
+{ "chapter":"Systèmes","q": "Dans un système hydraulique régulé, la « case drain line » d’une pompe sert surtout à :", "choices": ["Isoler la pompe en cas de surpression", "Évacuer les fuites internes et lubrifier/refroidir la pompe", "Assurer le retour HP vers le réservoir", "Purger l’air dissous du fluide"], "answer": 1 },
+{ "chapter":"Systèmes","q": "La fonction typique d’un Pressure Relief Valve (PRV) est :", "choices": ["Maintenir une pression constante en modulant le débit pompe", "Empêcher l’inversion de sens d’écoulement", "Protéger le circuit en limitant la pression maxi", "Filtrer les particules ferreuses"], "answer": 2 },
+{ "chapter":"Systèmes","q": "Un clapet anti-retour (check valve) est destiné à :", "choices": ["Limiter la pression de service", "Réguler la température fluide", "Séparer deux circuits sans échange de pression", "Autoriser l’écoulement dans un seul sens"], "answer": 3 },
+{ "chapter":"Systèmes","q": "Une vanne de priorisation (priority valve) a pour rôle :", "choices": ["Empêcher la cavitation en aspiration pompe", "Assurer l’alimentation des consommateurs critiques en cas de débit limité", "Équilibrer automatiquement les réservoirs carburant", "Dériver le retour hydraulique vers un échangeur thermique"], "answer": 1 },
+{ "chapter":"Systèmes","q": "Un filtre hydraulique avec indicateur « ΔP » signale :", "choices": ["Une perte de charge élevée à travers le filtre (colmatage)", "Une température fluide trop basse", "Une surpression en sortie de pompe", "Une contamination uniquement ferreuse"], "answer": 0 },
+{ "chapter":"Systèmes","q": "Une soupape de by-pass de filtre hydraulique sert à :", "choices": ["Renvoyer le fluide directement au réservoir en permanence", "Augmenter la finesse de filtration", "Assurer la continuité d’alimentation si le filtre est colmaté", "Maintenir la pression à 3000 psi"], "answer": 2 },
+{ "chapter":"Systèmes","q": "Sur un circuit hydraulique, la cavitation apparaît le plus souvent :", "choices": ["En aval d’un PRV (pression trop élevée)", "À l’aspiration pompe (pression trop faible / pertes de charge)", "Uniquement dans la ligne retour", "Après l’échangeur thermique (température trop basse)"], "answer": 1 },
+{ "chapter":"Systèmes","q": "Une RAT (Ram Air Turbine) sur avion transport est conçue pour :", "choices": ["Augmenter la vitesse en croisière", "Remplacer l’APU au sol", "Maintenir la température carburant", "Fournir une puissance de secours (hydraulique et/ou électrique) en cas de pertes majeures"], "answer": 3 },
+{ "chapter":"Systèmes","q": "Un PTU (Power Transfer Unit) permet :", "choices": ["De transférer de la puissance hydraulique entre deux circuits sans mélange de fluide", "De transférer du fluide hydraulique d’un réservoir à l’autre", "De pressuriser la cabine en secours", "D’assister le démarrage moteur par air"], "answer": 0 },
+{ "chapter":"Systèmes","q": "Concernant Skydrol, l’affirmation correcte est :", "choices": ["Fluide minéral : compatible universellement avec tous joints", "Fluide glycol : utilisé principalement dans les circuits carburant", "Fluide phosphate ester : agressif pour certaines peintures/peaux, joints spécifiques requis", "Fluide silicone : dédié aux freins carbone uniquement"], "answer": 2 },
+{ "chapter":"Systèmes","q": "La fonction principale des « boost pumps » carburant est :", "choices": ["Mesurer la quantité carburant", "Augmenter le taux de dilution du carburant", "Assurer une pression positive en alimentation et éviter la cavitation/air ingestion", "Refroidir les IDG"], "answer": 2 },
+{ "chapter":"Systèmes","q": "Un système crossfeed permet :", "choices": ["D’augmenter automatiquement la pression fuel en montée", "D’alimenter un moteur depuis un autre réservoir/collecteur et d’équilibrer selon procédures", "De purger l’eau du carburant en vol", "De commander la mise en drapeau de l’hélice"], "answer": 1 },
+{ "chapter":"Systèmes","q": "Un « fuel scavenge/transfer » a typiquement pour but :", "choices": ["De récupérer du carburant résiduel (ex: réservoir central) vers les réservoirs d’aile", "De pressuriser les réservoirs en continu", "De refroidir les packs de conditionnement", "De filtrer le carburant en micro-particules uniquement"], "answer": 0 },
+{ "chapter":"Systèmes","q": "La mesure de quantité carburant sur avion transport est le plus souvent basée sur :", "choices": ["Un flotteur mécanique direct par jauge", "Un débitmètre moteur uniquement", "Des sondes capacitives (capacitance probes) + calculateur", "Une mesure de densité par hygromètre"], "answer": 2 },
+{ "chapter":"Systèmes","q": "La mise à l’air (venting) d’un réservoir carburant sert principalement à :", "choices": ["Augmenter la température carburant", "Éviter surpression/dépression et permettre un débit carburant stable", "Empêcher toute formation de vapeur", "Augmenter la masse volumique en vol"], "answer": 1 },
+{ "chapter":"Systèmes","q": "La fonction d’un « fuel shutoff valve » (spar valve / engine fuel valve) est :", "choices": ["Isoler l’alimentation carburant moteur (sécurité incendie / arrêt moteur)", "Réguler le mélange air/carburant en combustion", "Équilibrer automatiquement les réservoirs", "Assurer le dégivrage des entrées d’air"], "answer": 0 },
+{ "chapter":"Systèmes","q": "Le bleed air sur turboréacteur est prélevé typiquement :", "choices": ["En sortie de turbine BP", "Après la tuyère (flux froid)", "Sur un ou plusieurs étages du compresseur (HP/IP selon architecture)", "Dans le réservoir hydraulique pressurisé"], "answer": 2 },
+{ "chapter":"Systèmes","q": "La fonction d’une PRV/HPV (Pressure Regulating/High Pressure Valve) sur un système bleed est :", "choices": ["Mesurer la température cabine", "Réguler la pression/limiter le débit et protéger les utilisateurs", "Ouvrir la vanne carburant en croisière", "Synchroniser l’APU avec l’IDG"], "answer": 1 },
+{ "chapter":"Systèmes","q": "Le « pack » de conditionnement d’air comprend typiquement :", "choices": ["Une pompe hydraulique + accumulateur", "Un carburateur + magnétos", "Un IDG + redresseur", "Des échangeurs + ACM (Air Cycle Machine) + séparateur d’eau"], "answer": 3 },
+{ "chapter":"Systèmes","q": "La pressurisation cabine est contrôlée principalement par :", "choices": ["Les packs uniquement par variation de débit", "La vanne de crossfeed carburant", "Le PRV hydraulique principal", "Une ou plusieurs outflow valves modulées par un contrôleur"], "answer": 3 },
+{ "chapter":"Systèmes","q": "Une « safety valve » de pressurisation (valve positive/negative relief) sert à :", "choices": ["Augmenter la pression cabine en montée", "Réchauffer l’air cabine", "Évacuer l’humidité des packs", "Protéger la structure contre une surpression ou une dépression excessive"], "answer": 3 },
+{ "chapter":"Systèmes","q": "Sur un freinage avec anti-skid, le système agit en modulant :", "choices": ["Le couple moteur via FADEC", "La géométrie du train (toe-in/toe-out)", "La pression hydraulique vers chaque frein via une valve de contrôle", "Le crossfeed carburant"], "answer": 2 },
+{ "chapter":"Systèmes","q": "Un capteur typique anti-skid mesure :", "choices": ["La pression d’azote amortisseur", "La température EGT", "L’angle d’attaque", "La vitesse de rotation de roue (wheel speed transducer)"], "answer": 3 },
+{ "chapter":"Systèmes","q": "Le « normal braking » est généralement alimenté par :", "choices": ["Le système pneumatique bleed air", "L’APU uniquement", "La RAT uniquement", "Un circuit hydraulique principal dédié (ex: Green/Yellow/Blue selon avion)"], "answer": 3 },
+{ "chapter":"Systèmes","q": "Le frein de parking sur avion transport est le plus souvent :", "choices": ["Une fonction hydraulique avec verrouillage/valve dédiée et maintien de pression", "Un frein purement mécanique à câble", "Un frein uniquement électrique par résistance", "Un frein dépendant du crossfeed carburant"], "answer": 0 },
+{ "chapter":"Systèmes","q": "Le séquencement du train d’atterrissage est assuré typiquement par :", "choices": ["Des capteurs de position + logique (LGCIU) + valves/séquenceurs", "Le PRV hydraulique uniquement", "Le système anti-skid", "Le système de pressurisation cabine"], "answer": 0 },
+{ "chapter":"Systèmes","q": "Un « downlock » est :", "choices": ["Une valve de limitation de pression frein", "Un verrouillage mécanique train sorti", "Une pompe d’appoint carburant", "Un capteur de température bleed"], "answer": 1 },
+{ "chapter":"Systèmes","q": "Un amortisseur oléopneumatique fonctionne grâce à :", "choices": ["Un ressort acier uniquement", "Une vis sans fin et engrenages", "Un circuit électrique PWM", "La compression du gaz + passage d’huile calibré (amortissement)"], "answer": 3 },
+{ "chapter":"Systèmes","q": "La protection incendie moteur (transport) repose souvent sur :", "choices": ["Deux boucles de détection thermique continues (redondance) + logique", "Un capteur capacitif carburant", "Une sonde Pitot chauffée", "Un indicateur de colmatage filtre hydraulique"], "answer": 0 },
+{ "chapter":"Systèmes","q": "L’agent extincteur typique des bouteilles moteur (transport) est :", "choices": ["Oxygène", "Azote liquide", "Halon (ou équivalent) / agent propre", "Vapeur d’eau"], "answer": 2 },
+{ "chapter":"Systèmes","q": "L’APU est principalement utilisé pour :", "choices": ["Fournir la portance au décollage", "Refroidir les freins par air pulsé", "Réguler la pression hydraulique à 3000 psi", "Fournir énergie électrique et/ou pneumatique au sol (et parfois en vol)"], "answer": 3 },
+{ "chapter":"Systèmes","q": "Un système anti-ice « thermal » sur ailes/entrées d’air utilise le plus souvent :", "choices": ["Un liquide glycol en pulvérisation continue", "Le carburant directement pulvérisé", "De l’air chaud (bleed) régulé", "Une résistance électrique uniquement sur grande surface"], "answer": 2 },
+{ "chapter":"Systèmes","q": "Le dégivrage d’une sonde Pitot sur avion transport est typiquement :", "choices": ["Hydraulique par échangeur", "Pneumatique par Venturi", "Mécanique par vibration", "Électrique par résistance chauffante"], "answer": 3 },
+{ "chapter":"Systèmes","q": "Dans un système hydraulique, le réservoir est généralement pressurisé afin de :", "choices": ["Augmenter la température du fluide", "Éviter la cavitation à l’aspiration des pompes", "Filtrer les particules métalliques", "Augmenter la viscosité du fluide"], "answer": 1 },
+{ "chapter":"Systèmes","q": "Une pompe électrique hydraulique (EMP) est principalement utilisée pour :", "choices": ["Remplacer définitivement les EDP en vol normal", "Assurer une source de pression auxiliaire ou de secours", "Réguler la température du fluide hydraulique", "Transférer le fluide entre circuits sans puissance mécanique"], "answer": 1 },
+{ "chapter":"Systèmes","q": "Dans un système de conditionnement d’air, l’ACM (Air Cycle Machine) fonctionne selon le principe :", "choices": ["Compression – combustion – détente", "Compression – refroidissement – détente", "Vaporisation – condensation – évaporation", "Injection – mélange – filtration"], "answer": 1 },
+{ "chapter":"Systèmes","q": "Un système « auto brake » permet :", "choices": ["De moduler automatiquement la poussée inverse", "D’armer automatiquement l’anti-skid en vol", "De verrouiller mécaniquement les trains principaux", "D’appliquer une pression de freinage prédéterminée après le toucher des roues"], "answer": 3 },
+{ "chapter":"Systèmes","q": "La fonction principale d’un détecteur de fuite hydraulique (leak detection) est :", "choices": ["Mesurer la température du fluide", "Détecter une baisse anormale de quantité ou de pression et isoler le circuit si nécessaire", "Augmenter la pression du circuit en cas de perte", "Filtrer les bulles d’air dans le fluide"], "answer": 1 },
 
 // chapitre PROPULSION
-{ "q": "Sur un turbofan double corps, le paramètre N1 correspond généralement à :", "choices": ["La vitesse du compresseur BP/fan", "La vitesse du compresseur HP", "La vitesse de la turbine HP", "La vitesse de la turbine libre"], "answer": 0 },
-{ "q": "Le paramètre N2 sur un moteur double corps indique :", "choices": ["La vitesse du corps HP (compresseur HP + turbine HP)", "La vitesse du fan", "Le débit carburant corrigé", "La pression totale sortie turbine"], "answer": 0 },
-{ "q": "L’EPR (Engine Pressure Ratio) est défini comme :", "choices": ["PT7/PT2 (pression totale sortie/entrée moteur)", "T7/T2 (rapport températures)", "N2/N1 (rapport vitesses)", "Débit carburant / débit air"], "answer": 0 },
-{ "q": "Un moteur triple corps (ex: RB211/Trent) comporte :", "choices": ["Trois arbres concentriques indépendants", "Trois chambres de combustion séparées", "Trois turbines libres", "Trois FADEC distincts"], "answer": 0 },
-{ "q": "Une turbine libre signifie que :", "choices": ["La turbine de puissance n’est pas mécaniquement liée au compresseur", "La turbine entraîne directement le compresseur HP", "Le fan est entraîné par engrenage unique", "Le compresseur BP est solidaire du HP"], "answer": 0 },
-{ "q": "La fonction principale des VSV (Variable Stator Vanes) est :", "choices": ["Optimiser l’angle d’attaque du flux à bas régime pour éviter le pompage", "Augmenter la température turbine", "Réduire le bruit fan uniquement", "Augmenter le taux de dilution"], "answer": 0 },
-{ "q": "Les VBV (Variable Bleed Valves) servent principalement à :", "choices": ["Décharger le compresseur à bas régime pour éviter le surge", "Augmenter la poussée en croisière", "Refroidir la turbine HP", "Augmenter la pression cabine"], "answer": 0 },
-{ "q": "Le phénomène de surge se caractérise par :", "choices": ["Une inversion momentanée du flux dans le compresseur", "Une augmentation progressive de N1", "Une baisse lente de l’EGT", "Un excès de dilution"], "answer": 0 },
-{ "q": "Le phénomène de stall compresseur correspond à :", "choices": ["Un décrochage localisé d’aubes du compresseur", "Une extinction complète de la flamme", "Un déséquilibre turbine BP", "Une perte de lubrification roulement"], "answer": 0 },
-{ "q": "Le taux de dilution (bypass ratio) est le rapport entre :", "choices": ["Débit secondaire / débit primaire", "Débit carburant / débit air", "Pression entrée / sortie", "N1 / N2"], "answer": 0 },
-{ "q": "Un fort taux de dilution entraîne généralement :", "choices": ["Une meilleure efficacité propulsive et moins de bruit", "Une EGT plus élevée", "Un surge plus fréquent", "Une vitesse jet plus élevée"], "answer": 0 },
-{ "q": "La section la plus chaude d’un turboréacteur est :", "choices": ["Entrée turbine HP", "Sortie fan", "Entrée compresseur BP", "Sortie tuyère froide"], "answer": 0 },
-{ "q": "L’EGT (ou ITT) représente :", "choices": ["La température des gaz à l’entrée ou sortie turbine selon installation", "La température d’huile moteur", "La température carburant injecté", "La température fan uniquement"], "answer": 0 },
-{ "q": "Une limitation EGT au décollage est principalement liée à :", "choices": ["La protection des aubes turbine", "La protection du fan", "La protection du carter accessoire", "La protection du compresseur BP"], "answer": 0 },
-{ "q": "Le FADEC assure :", "choices": ["Le contrôle électronique complet du moteur et ses protections", "La lubrification automatique des roulements", "La régulation de pression cabine", "Le contrôle manuel du débit carburant"], "answer": 0 },
-{ "q": "En cas de panne FADEC totale sur moteur moderne :", "choices": ["Un mode secours (alternate) peut limiter les performances", "Le moteur accélère à pleine poussée", "Le moteur s’arrête immédiatement sans possibilité de redémarrage", "Le N1 devient indépendant du fuel flow"], "answer": 0 },
-{ "q": "Une gearbox avec ratio 1:15 signifie que :", "choices": ["La turbine fait 15 tours pour 1 tour d’hélice/fan entraîné", "L’hélice tourne 15 fois plus vite que la turbine", "Le couple est divisé par 15", "Le compresseur HP tourne 15 fois plus lentement"], "answer": 0 },
-{ "q": "Sur turboprop, la mise en drapeau (feather) a pour but :", "choices": ["Réduire la traînée hélice en cas panne moteur", "Augmenter la poussée au décollage", "Refroidir la turbine libre", "Réduire la consommation en croisière"], "answer": 0 },
-{ "q": "Le beta range sur turboprop correspond à :", "choices": ["Zone de contrôle pas hélice pour roulage/inversion", "Zone de croisière économique", "Zone d’allumage moteur", "Zone de limite EGT"], "answer": 0 },
-{ "q": "Le couple (torque) sur turboprop est une indication de :", "choices": ["Puissance transmise à l’hélice", "Température turbine", "Pression admission", "Vitesse turbine libre"], "answer": 0 },
-{ "q": "Le système de lubrification moteur sert principalement à :", "choices": ["Lubrifier, refroidir et évacuer les particules", "Augmenter la poussée", "Refroidir la cabine", "Pressuriser le carburant"], "answer": 0 },
-{ "q": "Un détecteur de particules magnétiques (chip detector) indique :", "choices": ["Présence de débris métalliques ferreux dans l’huile", "Surpression huile", "Température excessive carburant", "Débit d’air insuffisant"], "answer": 0 },
-{ "q": "La pression huile moteur est généralement régulée par :", "choices": ["Une soupape de décharge (relief valve)", "Le FADEC uniquement", "La pompe carburant HP", "Le compresseur BP"], "answer": 0 },
-{ "q": "Le refroidissement des aubes turbine HP se fait souvent par :", "choices": ["Air prélevé au compresseur (cooling air)", "Carburant pulvérisé interne", "Huile moteur directe", "Air cabine recyclé"], "answer": 0 },
-{ "q": "Le démarrage moteur turbine est obtenu par :", "choices": ["Un démarreur pneumatique ou électrique entraînant le compresseur", "Une mise à feu spontanée carburant", "La rotation du fan par vent relatif uniquement", "La RAT"], "answer": 0 },
-{ "q": "La séquence correcte de démarrage turbine est :", "choices": ["Rotation compresseur → injection carburant → allumage → auto-accélération", "Injection carburant → allumage → rotation", "Allumage → rotation → injection", "Rotation turbine → injection → coupure allumage"], "answer": 0 },
-{ "q": "Un hot start est caractérisé par :", "choices": ["Une montée EGT excessive au démarrage", "Une baisse N2 en montée", "Une pression huile trop élevée", "Un couple trop faible"], "answer": 0 },
-{ "q": "Un hung start correspond à :", "choices": ["Stagnation régime N2 sans atteindre régime auto-entretenu", "Extinction flamme en vol", "Dépassement couple max", "Surpression huile"], "answer": 0 },
-{ "q": "Le système d’inversion de poussée agit en :", "choices": ["Déviant le flux moteur vers l’avant", "Inversant la rotation turbine HP", "Inversant le sens combustion", "Diminuant le taux de dilution"], "answer": 0 },
-{ "q": "Sur turbofan moderne, la poussée est majoritairement produite par :", "choices": ["Le flux secondaire (fan)", "La tuyère primaire uniquement", "La chambre combustion", "Le compresseur HP"], "answer": 0 },
-{ "q": "La limite N1 maximale est généralement liée à :", "choices": ["Contraintes mécaniques fan et compresseur BP", "Température turbine HP", "Pression carburant", "Pression cabine"], "answer": 0 },
-{ "q": "La limite N2 maximale protège principalement :", "choices": ["Le corps HP (compresseur et turbine HP)", "Le fan uniquement", "L’APU", "Le système hydraulique"], "answer": 0 },
-{ "q": "Un moteur turbojet comparé à un turbofan a :", "choices": ["Un taux de dilution faible voire nul", "Un fan de grand diamètre", "Une meilleure efficacité propulsive subsonique", "Moins de vitesse jet"], "answer": 0 },
-{ "q": "Le cycle thermodynamique d’un turboréacteur est :", "choices": ["Cycle de Brayton", "Cycle d’Otto", "Cycle Diesel", "Cycle Rankine"], "answer": 0 },
-{ "q": "Dans un moteur à pistons aéronautique, l’allumage est assuré par :", "choices": ["Magnétos indépendantes du circuit électrique avion", "Alternateur principal", "Batterie uniquement", "FADEC obligatoire"], "answer": 0 },
-{ "q": "L’avance à l’allumage sur moteur piston sert à :", "choices": ["Optimiser la combustion avant PMH", "Refroidir le cylindre", "Augmenter la pression huile", "Réduire la compression"], "answer": 0 },
-{ "q": "Un moteur piston à injection comparé à carburateur :", "choices": ["Est moins sensible au givrage carburateur", "Consomme toujours plus", "Nécessite magnétos triples", "Fonctionne sans pompe carburant"], "answer": 0 },
-{ "q": "Le givrage carburateur est dû principalement à :", "choices": ["Refroidissement air par détente et vaporisation carburant", "Température EGT élevée", "Surpression admission", "Excès avance allumage"], "answer": 0 },
+{ "chapter": "Propulsion", "q": "Sur un turbofan double corps, le paramètre N1 correspond généralement à :", "choices": ["La vitesse du compresseur HP", "La vitesse de la turbine HP", "La vitesse de la turbine libre", "La vitesse du compresseur BP/fan"], "answer": 3 },
+{ "chapter": "Propulsion", "q": "Le paramètre N2 sur un moteur double corps indique :", "choices": ["La vitesse du corps HP (compresseur HP + turbine HP)", "La vitesse du fan", "Le débit carburant corrigé", "La pression totale sortie turbine"], "answer": 0 },
+{ "chapter": "Propulsion", "q": "L’EPR (Engine Pressure Ratio) est défini comme :", "choices": ["T7/T2 (rapport températures)", "PT7/PT2 (pression totale sortie/entrée moteur)", "N2/N1 (rapport vitesses)", "Débit carburant / débit air"], "answer": 1 },
+{ "chapter": "Propulsion", "q": "Un moteur triple corps (ex: RB211/Trent) comporte :", "choices": ["Trois chambres de combustion séparées", "Trois turbines libres", "Trois arbres concentriques indépendants", "Trois FADEC distincts"], "answer": 2 },
+{ "chapter": "Propulsion", "q": "Une turbine libre signifie que :", "choices": ["La turbine entraîne directement le compresseur HP", "La turbine de puissance n’est pas mécaniquement liée au compresseur", "Le fan est entraîné par engrenage unique", "Le compresseur BP est solidaire du HP"], "answer": 1 },
+{ "chapter": "Propulsion", "q": "La fonction principale des VSV (Variable Stator Vanes) est :", "choices": ["Augmenter la température turbine", "Réduire le bruit fan uniquement", "Optimiser l’angle d’attaque du flux à bas régime pour éviter le pompage", "Augmenter le taux de dilution"], "answer": 2 },
+{ "chapter": "Propulsion", "q": "Les VBV (Variable Bleed Valves) servent principalement à :", "choices": ["Décharger le compresseur à bas régime pour éviter le surge", "Augmenter la poussée en croisière", "Refroidir la turbine HP", "Augmenter la pression cabine"], "answer": 0 },
+{ "chapter": "Propulsion", "q": "Le phénomène de surge se caractérise par :", "choices": ["Une augmentation progressive de N1", "Une baisse lente de l’EGT", "Une inversion momentanée du flux dans le compresseur", "Un excès de dilution"], "answer": 2 },
+{ "chapter": "Propulsion", "q": "Le phénomène de stall compresseur correspond à :", "choices": ["Une extinction complète de la flamme", "Un déséquilibre turbine BP", "Un décrochage localisé d’aubes du compresseur", "Une perte de lubrification roulement"], "answer": 2 },
+{ "chapter": "Propulsion", "q": "Le taux de dilution (bypass ratio) est le rapport entre :", "choices": ["Débit secondaire / débit primaire", "Débit carburant / débit air", "Pression entrée / sortie", "N1 / N2"], "answer": 0 },
+{ "chapter": "Propulsion", "q": "Un fort taux de dilution entraîne généralement :", "choices": ["Une EGT plus élevée", "Un surge plus fréquent", "Une meilleure efficacité propulsive et moins de bruit", "Une vitesse jet plus élevée"], "answer": 2 },
+{ "chapter": "Propulsion", "q": "La section la plus chaude d’un turboréacteur est :", "choices": ["Sortie fan", "Entrée compresseur BP", "Sortie tuyère froide", "Entrée turbine HP"], "answer": 3 },
+{ "chapter": "Propulsion", "q": "L’EGT (ou ITT) représente :", "choices": ["La température des gaz à l’entrée ou sortie turbine selon installation", "La température d’huile moteur", "La température carburant injecté", "La température fan uniquement"], "answer": 0 },
+{ "chapter": "Propulsion", "q": "Une limitation EGT au décollage est principalement liée à :", "choices": ["La protection du fan", "La protection du carter accessoire", "La protection des aubes turbine", "La protection du compresseur BP"], "answer": 2 },
+{ "chapter": "Propulsion", "q": "Le FADEC assure :", "choices": ["La lubrification automatique des roulements", "Le contrôle électronique complet du moteur et ses protections", "La régulation de pression cabine", "Le contrôle manuel du débit carburant"], "answer": 1 },
+{ "chapter": "Propulsion", "q": "En cas de panne FADEC totale sur moteur moderne :", "choices": ["Le moteur accélère à pleine poussée", "Un mode secours (alternate) peut limiter les performances", "Le moteur s’arrête immédiatement sans possibilité de redémarrage", "Le N1 devient indépendant du fuel flow"], "answer": 1 },
+{ "chapter": "Propulsion", "q": "Une gearbox avec ratio 1:15 signifie que :", "choices": ["L’hélice tourne 15 fois plus vite que la turbine", "La turbine fait 15 tours pour 1 tour d’hélice/fan entraîné", "Le couple est divisé par 15", "Le compresseur HP tourne 15 fois plus lentement"], "answer": 1 },
+{ "chapter": "Propulsion", "q": "Sur turboprop, la mise en drapeau (feather) a pour but :", "choices": ["Augmenter la poussée au décollage", "Réduire la traînée hélice en cas panne moteur", "Refroidir la turbine libre", "Réduire la consommation en croisière"], "answer": 1 },
+{ "chapter": "Propulsion", "q": "Le beta range sur turboprop correspond à :", "choices": ["Zone de croisière économique", "Zone d’allumage moteur", "Zone de contrôle pas hélice pour roulage/inversion", "Zone de limite EGT"], "answer": 2 },
+{ "chapter": "Propulsion", "q": "Le couple (torque) sur turboprop est une indication de :", "choices": ["Température turbine", "Puissance transmise à l’hélice", "Pression admission", "Vitesse turbine libre"], "answer": 1 },
+{ "chapter": "Propulsion", "q": "Le système de lubrification moteur sert principalement à :", "choices": ["Lubrifier, refroidir et évacuer les particules", "Augmenter la poussée", "Refroidir la cabine", "Pressuriser le carburant"], "answer": 0 },
+{ "chapter": "Propulsion", "q": "Un détecteur de particules magnétiques (chip detector) indique :", "choices": ["Surpression huile", "Présence de débris métalliques ferreux dans l’huile", "Température excessive carburant", "Débit d’air insuffisant"], "answer": 1 },
+{ "chapter": "Propulsion", "q": "La pression huile moteur est généralement régulée par :", "choices": ["Le FADEC uniquement", "La pompe carburant HP", "Le compresseur BP", "Une soupape de décharge (relief valve)"], "answer": 3 },
+{ "chapter": "Propulsion", "q": "Le refroidissement des aubes turbine HP se fait souvent par :", "choices": ["Carburant pulvérisé interne", "Huile moteur directe", "Air cabine recyclé", "Air prélevé au compresseur (cooling air)"], "answer": 3 },
+{ "chapter": "Propulsion", "q": "Le démarrage moteur turbine est obtenu par :", "choices": ["Une mise à feu spontanée carburant", "La rotation du fan par vent relatif uniquement", "Un démarreur pneumatique ou électrique entraînant le compresseur", "La RAT"], "answer": 2 },
+{ "chapter": "Propulsion", "q": "La séquence correcte de démarrage turbine est :", "choices": ["Injection carburant → allumage → rotation", "Allumage → rotation → injection", "Rotation turbine → injection → coupure allumage", "Rotation compresseur → injection carburant → allumage → auto-accélération"], "answer": 3 },
+{ "chapter": "Propulsion", "q": "Un hot start est caractérisé par :", "choices": ["Une baisse N2 en montée", "Une pression huile trop élevée", "Un couple trop faible", "Une montée EGT excessive au démarrage"], "answer": 3 },
+{ "chapter": "Propulsion", "q": "Un hung start correspond à :", "choices": ["Stagnation régime N2 sans atteindre régime auto-entretenu", "Extinction flamme en vol", "Dépassement couple max", "Surpression huile"], "answer": 0 },
+{ "chapter": "Propulsion", "q": "Le système d’inversion de poussée agit en :", "choices": ["Inversant la rotation turbine HP", "Déviant le flux moteur vers l’avant", "Inversant le sens combustion", "Diminuant le taux de dilution"], "answer": 1 },
+{ "chapter": "Propulsion", "q": "Sur turbofan moderne, la poussée est majoritairement produite par :", "choices": ["La tuyère primaire uniquement", "Le flux secondaire (fan)", "La chambre combustion", "Le compresseur HP"], "answer": 1 },
+{ "chapter": "Propulsion", "q": "La limite N1 maximale est généralement liée à :", "choices": ["Température turbine HP", "Pression carburant", "Pression cabine", "Contraintes mécaniques fan et compresseur BP"], "answer": 3 },
+{ "chapter": "Propulsion", "q": "La limite N2 maximale protège principalement :", "choices": ["Le fan uniquement", "L’APU", "Le corps HP (compresseur et turbine HP)", "Le système hydraulique"], "answer": 2 },
+{ "chapter": "Propulsion", "q": "Un moteur turbojet comparé à un turbofan a :", "choices": ["Un taux de dilution faible voire nul", "Un fan de grand diamètre", "Une meilleure efficacité propulsive subsonique", "Moins de vitesse jet"], "answer": 0 },
+{ "chapter": "Propulsion", "q": "Le cycle thermodynamique d’un turboréacteur est :", "choices": ["Cycle d’Otto", "Cycle Diesel", "Cycle Rankine", "Cycle de Brayton"], "answer": 3 },
+{ "chapter": "Propulsion", "q": "Dans un moteur à pistons aéronautique, l’allumage est assuré par :", "choices": ["Alternateur principal", "Batterie uniquement", "Magnétos indépendantes du circuit électrique avion", "FADEC obligatoire"], "answer": 2 },
+{ "chapter": "Propulsion", "q": "L’avance à l’allumage sur moteur piston sert à :", "choices": ["Refroidir le cylindre", "Optimiser la combustion avant PMH", "Augmenter la pression huile", "Réduire la compression"], "answer": 1 },
+{ "chapter": "Propulsion", "q": "Un moteur piston à injection comparé à carburateur :", "choices": ["Consomme toujours plus", "Nécessite magnétos triples", "Est moins sensible au givrage carburateur", "Fonctionne sans pompe carburant"], "answer": 2 },
+{ "chapter": "Propulsion", "q": "Le givrage carburateur est dû principalement à :", "choices": ["Refroidissement air par détente et vaporisation carburant", "Température EGT élevée", "Surpression admission", "Excès avance allumage"], "answer": 0 },
+{ "chapter": "Propulsion", "q": "Le rendement propulsif d’un turboréacteur est maximal lorsque :", "choices": ["La vitesse du jet est très supérieure à la vitesse avion", "Le taux de compression est minimal", "La vitesse des gaz ejectés est proche de la vitesse avion", "La température turbine est maximale"], "answer": 2 },
+{ "chapter": "Propulsion", "q": "Le prélèvement d’air (bleed air) sur un turbofan est principalement effectué au niveau :", "choices": ["De la tuyère secondaire", "Du compresseur HP", "De la turbine BP", "Du fan uniquement"], "answer": 1 },
+{ "chapter": "Propulsion", "q": "Une augmentation du taux de compression global entraîne généralement :", "choices": ["Une diminution du rendement thermique", "Une baisse systématique de la poussée", "Une diminution de la température turbine", "Une augmentation du rendement thermique"], "answer": 3 },
+{ "chapter": "Propulsion", "q": "Le phénomène de FOD (Foreign Object Damage) affecte principalement :", "choices": ["Les aubes d’entrée du compresseur/fan", "La chambre de combustion interne uniquement", "Le circuit carburant basse pression", "Le système d’allumage électrique"], "answer": 0 },
+{ "chapter": "Propulsion", "q": "Sur un turboprop à turbine libre, la vitesse hélice est principalement contrôlée par :", "choices": ["Le débit carburant uniquement", "Le pas variable d’hélice via le régulateur", "La pression huile moteur", "La température EGT"], "answer": 1 },
+
 
 // chapitre RÉGLEMENTATION
-{ "q": "La PART-66 définit principalement :", "choices": ["Les exigences de délivrance des licences de maintenance aéronautique (AML)", "Les exigences d’agrément des organismes de maintenance", "Les règles d’exploitation des compagnies aériennes", "Les normes de certification des moteurs"], "answer": 0 },
-{ "q": "La PART-145 concerne :", "choices": ["L’agrément des organismes de maintenance", "La formation initiale des mécaniciens", "La gestion du maintien de navigabilité (CAMO)", "La certification des aéronefs neufs"], "answer": 0 },
-{ "q": "La PART-147 définit :", "choices": ["Les exigences des organismes de formation agréés", "Les privilèges des pilotes professionnels", "Les procédures de délivrance de l’ARC", "Les règles de certification type"], "answer": 0 },
-{ "q": "La PART-CAMO est relative à :", "choices": ["La gestion du maintien de navigabilité", "La maintenance en ligne uniquement", "La formation continue des mécaniciens", "La production des aéronefs"], "answer": 0 },
-{ "q": "Le CRS (Certificate of Release to Service) atteste que :", "choices": ["Les travaux ont été réalisés conformément aux données approuvées", "L’aéronef est neuf", "Le moteur a atteint son TBO", "La visite annuelle est programmée"], "answer": 0 },
-{ "q": "Un titulaire de licence B1 peut délivrer un CRS pour :", "choices": ["Travaux mécaniques et systèmes associés", "Travaux avioniques complexes uniquement", "Certification structure majeure sans données approuvées", "Modification majeure sans approbation"], "answer": 0 },
-{ "q": "Un personnel B2 est principalement qualifié pour :", "choices": ["Systèmes avioniques et électriques", "Structures composites majeures", "Révision moteur complète atelier", "Gestion CAMO"], "answer": 0 },
-{ "q": "La responsabilité pénale d’un mécanicien peut être engagée en cas de :", "choices": ["Faute caractérisée ou négligence grave", "Manquement aux procédures approuvées", "Non-respect volontaire des données approuvées", "Défaut de supervision d’une tâche critique"], "answer": 0 },
-{ "q": "Le MOE (Maintenance Organisation Exposition) décrit :", "choices": ["Les procédures et l’organisation d’un organisme Part-145", "Le manuel de vol avion", "Le programme d’entretien avion", "La documentation constructeur moteur"], "answer": 0 },
-{ "q": "L’ARC (Airworthiness Review Certificate) atteste :", "choices": ["La validité du maintien de navigabilité d’un aéronef", "La conformité moteur après overhaul", "La qualification du mécanicien", "La conformité cabine passagers"], "answer": 0 },
-{ "q": "Le programme d’entretien (AMP) doit être :", "choices": ["Approuvé par l’autorité ou l’organisme compétent", "Rédigé uniquement par le constructeur", "Approuvé par le pilote commandant de bord", "Valable sans approbation formelle"], "answer": 0 },
-{ "q": "Une modification majeure requiert :", "choices": ["Données approuvées (STC ou équivalent)", "Accord oral du responsable maintenance", "Validation pilote uniquement", "Mise à jour logbook sans autre formalité"], "answer": 0 },
-{ "q": "Un STC (Supplemental Type Certificate) correspond à :", "choices": ["Une modification approuvée du type certifié", "Une licence mécanicien spécialisée", "Un manuel de maintenance simplifié", "Une procédure interne MOE"], "answer": 0 },
-{ "q": "Les données approuvées comprennent :", "choices": ["AMM, SRM, SB approuvés, STC", "Notes internes atelier non validées", "Procédures verbales expérimentées", "Recommandations non publiées"], "answer": 0 },
-{ "q": "La MEL (Minimum Equipment List) est basée sur :", "choices": ["La MMEL approuvée pour le type avion", "Le manuel de vol simplifié", "Le MOE Part-145", "Le logbook moteur"], "answer": 0 },
-{ "q": "La MEL permet :", "choices": ["D’exploiter l’avion avec certains équipements inopérants sous conditions", "D’ignorer toute panne mineure", "De reporter indéfiniment une réparation", "De modifier les limitations structurales"], "answer": 0 },
-{ "q": "Le personnel autorisé à signer un CRS doit :", "choices": ["Être qualifié, formé et autorisé par l’organisme", "Être uniquement titulaire Part-66", "Avoir 5 ans d’expérience minimum", "Être validé par le pilote"], "answer": 0 },
-{ "q": "Une « human factor » selon réglementation inclut :", "choices": ["Facteurs influençant la performance humaine en maintenance", "Performance moteur en altitude", "Rendement compresseur", "Calcul centrage avion"], "answer": 0 },
-{ "q": "La notion de « dual inspection » signifie :", "choices": ["Inspection indépendante pour tâche critique", "Inspection par deux mécaniciens", "Inspection doublée chaque 6 mois", "Inspection visuelle et magnétoscopie obligatoire"], "answer": 0 },
-{ "q": "Un organisme Part-145 doit disposer :", "choices": ["D’un système qualité et d’audits internes", "Procédure de gestion des modifications", "Manuel d’exploitation aérien", "Système SMS uniquement"], "answer": 0 },
-{ "q": "Le logbook aéronef sert à :", "choices": ["Tracer les interventions et le statut technique", "Archiver les formations mécaniciens", "Documenter les ventes pièces", "Suivre la masse et centrage uniquement"], "answer": 0 },
-{ "q": "La notion de « maintien de navigabilité » implique :", "choices": ["Que l’aéronef reste conforme aux exigences applicables en permanence", "Qu’il ait réussi son vol test initial", "Qu’il soit conforme uniquement au décollage", "Qu’il respecte les normes cabine passagers"], "answer": 0 },
-{ "q": "Une AD (Airworthiness Directive) est :", "choices": ["Une consigne de navigabilité obligatoire", "Une recommandation constructeur facultative", "Un manuel de vol complémentaire", "Une procédure interne CAMO"], "answer": 0 },
-{ "q": "Les AD sont émises par :", "choices": ["Autorité de certification (ex: EASA)", "Organisme Part-145", "Constructeur uniquement", "Exploitant aérien"], "answer": 0 },
-{ "q": "Un SB (Service Bulletin) devient obligatoire :", "choices": ["S’il est rendu obligatoire par une AD", "S’il est recommandé par le chef atelier", "S’il dépasse 6 mois", "S’il concerne un moteur"], "answer": 0 },
-{ "q": "Le privilège B1 inclut généralement :", "choices": ["Certification après maintenance mécanique et structure simple", "Certification avionique complexe autonome", "Approbation modification majeure", "Validation ARC"], "answer": 0 },
-{ "q": "Un personnel non certifiant peut :", "choices": ["Réaliser des tâches sous supervision", "Être autorisé ponctuellement à signer", "Approuver un CRS", "Être autorisé si >5 ans expérience"], "answer": 0 },
-{ "q": "La traçabilité des pièces exige :", "choices": ["Certificat libératoire type EASA Form 1 ou équivalent", "Facture fournisseur simple", "Numéro série non documenté", "Validation pilote"], "answer": 0 },
-{ "q": "Une pièce non traçable doit être :", "choices": ["Quarantainée et non installée", "Installée sous responsabilité mécanicien", "Acceptée si visuellement conforme", "Utilisée pour essais en vol"], "answer": 0 },
-{ "q": "Le SMS (Safety Management System) vise à :", "choices": ["Identifier et gérer les risques sécurité", "Optimiser la consommation carburant", "Réduire coûts maintenance uniquement", "Améliorer confort cabine"], "answer": 0 },
-{ "q": "La culture « just culture » signifie :", "choices": ["Encourager le reporting sans sanction injustifiée", "Tolérer toute faute grave", "Sanctionner systématiquement les erreurs", "Supprimer audits internes"], "answer": 0 },
-{ "q": "Une tâche critique selon Part-145 nécessite :", "choices": ["Procédure spécifique et contrôle renforcé", "Signature pilote obligatoire", "Approbation constructeur immédiate", "Exécution uniquement en atelier"], "answer": 0 },
-{ "q": "La conservation des enregistrements maintenance est exigée :", "choices": ["Pour une durée minimale définie par la réglementation", "Uniquement pendant la validité ARC", "Jusqu’au prochain vol", "6 mois maximum"], "answer": 0 },
-{ "q": "Le rôle principal d’une autorité compétente est :", "choices": ["Superviser et contrôler la conformité réglementaire", "Former les mécaniciens en interne", "Gérer les stocks pièces", "Planifier les vols commerciaux"], "answer": 0 },
-{ "q": "Une erreur de maintenance détectée après CRS implique :", "choices": ["Analyse et actions correctives selon SMS", "Annulation automatique licence", "Suppression MEL", "Radiation avion immédiate"], "answer": 0 },
+{ "chapter":"Réglementation", "q": "La PART-66 définit principalement :", "choices": ["Les exigences d’agrément des organismes de maintenance", "Les règles d’exploitation des compagnies aériennes", "Les normes de certification des moteurs", "Les exigences de délivrance des licences de maintenance aéronautique (AML)"], "answer": 3 },
+{ "chapter":"Réglementation", "q": "La PART-145 concerne :", "choices": ["L’agrément des organismes de maintenance", "La formation initiale des mécaniciens", "La gestion du maintien de navigabilité (CAMO)", "La certification des aéronefs neufs"], "answer": 0 },
+{ "chapter":"Réglementation", "q": "La PART-147 définit :", "choices": ["Les privilèges des pilotes professionnels", "Les procédures de délivrance de l’ARC", "Les règles de certification type", "Les exigences des organismes de formation agréés"], "answer": 3 },
+{ "chapter":"Réglementation", "q": "La PART-CAMO est relative à :", "choices": ["La maintenance en ligne uniquement", "La gestion du maintien de navigabilité", "La formation continue des mécaniciens", "La production des aéronefs"], "answer": 1 },
+{ "chapter":"Réglementation", "q": "Le CRS (Certificate of Release to Service) atteste que :", "choices": ["L’aéronef est neuf", "Les travaux ont été réalisés conformément aux données approuvées", "Le moteur a atteint son TBO", "La visite annuelle est programmée"], "answer": 1 },
+{ "chapter":"Réglementation", "q": "Un titulaire de licence B1 peut délivrer un CRS pour :", "choices": ["Travaux avioniques complexes uniquement", "Certification structure majeure sans données approuvées", "Travaux mécaniques et systèmes associés", "Modification majeure sans approbation"], "answer": 2 },
+{ "chapter":"Réglementation", "q": "Un personnel B2 est principalement qualifié pour :", "choices": ["Systèmes avioniques et électriques", "Structures composites majeures", "Révision moteur complète atelier", "Gestion CAMO"], "answer": 0 },
+{ "chapter":"Réglementation", "q": "La responsabilité pénale d’un mécanicien peut être engagée en cas de :", "choices": ["Manquement aux procédures approuvées", "Faute caractérisée ou négligence grave", "Non-respect volontaire des données approuvées", "Défaut de supervision d’une tâche critique"], "answer": 1 },
+{ "chapter":"Réglementation", "q": "Le MOE (Maintenance Organisation Exposition) décrit :", "choices": ["Le manuel de vol avion", "Les procédures et l’organisation d’un organisme Part-145", "Le programme d’entretien avion", "La documentation constructeur moteur"], "answer": 1 },
+{ "chapter":"Réglementation", "q": "L’ARC (Airworthiness Review Certificate) atteste :", "choices": ["La conformité moteur après overhaul", "La qualification du mécanicien", "La validité du maintien de navigabilité d’un aéronef", "La conformité cabine passagers"], "answer": 2 },
+{ "chapter":"Réglementation", "q": "Le programme d’entretien (AMP) doit être :", "choices": ["Rédigé uniquement par le constructeur", "Approuvé par l’autorité ou l’organisme compétent", "Approuvé par le pilote commandant de bord", "Valable sans approbation formelle"], "answer": 1 },
+{ "chapter":"Réglementation", "q": "Une modification majeure requiert :", "choices": ["Accord oral du responsable maintenance", "Validation pilote uniquement", "Mise à jour logbook sans autre formalité", "Données approuvées (STC ou équivalent)"], "answer": 3 },
+{ "chapter":"Réglementation", "q": "Un STC (Supplemental Type Certificate) correspond à :", "choices": ["Une licence mécanicien spécialisée", "Un manuel de maintenance simplifié", "Une modification approuvée du type certifié", "Une procédure interne MOE"], "answer": 2 },
+{ "chapter":"Réglementation", "q": "Les données approuvées comprennent :", "choices": ["Notes internes atelier non validées", "Procédures verbales expérimentées", "AMM, SRM, SB approuvés, STC", "Recommandations non publiées"], "answer": 2 },
+{ "chapter":"Réglementation", "q": "La MEL (Minimum Equipment List) est basée sur :", "choices": ["Le manuel de vol simplifié", "Le MOE Part-145", "Le logbook moteur", "La MMEL approuvée pour le type avion"], "answer": 3 },
+{ "chapter":"Réglementation", "q": "La MEL permet :", "choices": ["D’ignorer toute panne mineure", "D’exploiter l’avion avec certains équipements inopérants sous conditions", "De reporter indéfiniment une réparation", "De modifier les limitations structurales"], "answer": 1 },
+{ "chapter":"Réglementation", "q": "Le personnel autorisé à signer un CRS doit :", "choices": ["Être uniquement titulaire Part-66", "Avoir 5 ans d’expérience minimum", "Être validé par le pilote", "Être qualifié, formé et autorisé par l’organisme"], "answer": 3 },
+{ "chapter":"Réglementation", "q": "Une « human factor » selon réglementation inclut :", "choices": ["Facteurs influençant la performance humaine en maintenance", "Performance moteur en altitude", "Rendement compresseur", "Calcul centrage avion"], "answer": 0 },
+{ "chapter":"Réglementation", "q": "La notion de « dual inspection » signifie :", "choices": ["Inspection par deux mécaniciens", "Inspection doublée chaque 6 mois", "Inspection indépendante pour tâche critique", "Inspection visuelle et magnétoscopie obligatoire"], "answer": 2 },
+{ "chapter":"Réglementation", "q": "Un organisme Part-145 doit disposer :", "choices": ["Procédure de gestion des modifications", "Manuel d’exploitation aérien", "D’un système qualité et d’audits internes", "Système SMS uniquement"], "answer": 2 },
+{ "chapter":"Réglementation", "q": "Le logbook aéronef sert à :", "choices": ["Archiver les formations mécaniciens", "Documenter les ventes pièces", "Tracer les interventions et le statut technique", "Suivre la masse et centrage uniquement"], "answer": 2 },
+{ "chapter":"Réglementation", "q": "La notion de « maintien de navigabilité » implique :", "choices": ["Qu’il ait réussi son vol test initial", "Qu’il soit conforme uniquement au décollage", "Que l’aéronef reste conforme aux exigences applicables en permanence", "Qu’il respecte les normes cabine passagers"], "answer": 2 },
+{ "chapter":"Réglementation", "q": "Une AD (Airworthiness Directive) est :", "choices": ["Une recommandation constructeur facultative", "Une consigne de navigabilité obligatoire", "Un manuel de vol complémentaire", "Une procédure interne CAMO"], "answer": 1 },
+{ "chapter":"Réglementation", "q": "Les AD sont émises par :", "choices": ["Autorité de certification (ex: EASA)", "Organisme Part-145", "Constructeur uniquement", "Exploitant aérien"], "answer": 0 },
+{ "chapter":"Réglementation", "q": "Un SB (Service Bulletin) devient obligatoire :", "choices": ["S’il est recommandé par le chef atelier", "S’il dépasse 6 mois", "S’il est rendu obligatoire par une AD", "S’il concerne un moteur"], "answer": 2 },
+{ "chapter":"Réglementation", "q": "Le privilège B1 inclut généralement :", "choices": ["Certification après maintenance mécanique et structure simple", "Certification avionique complexe autonome", "Approbation modification majeure", "Validation ARC"], "answer": 0 },
+{ "chapter":"Réglementation", "q": "Un personnel non certifiant peut :", "choices": ["Réaliser des tâches sous supervision", "Être autorisé ponctuellement à signer", "Approuver un CRS", "Être autorisé si >5 ans expérience"], "answer": 0 },
+{ "chapter":"Réglementation", "q": "La traçabilité des pièces exige :", "choices": ["Facture fournisseur simple", "Numéro série non documenté", "Certificat libératoire type EASA Form 1 ou équivalent", "Validation pilote"], "answer": 2 },
+{ "chapter":"Réglementation", "q": "Une pièce non traçable doit être :", "choices": ["Installée sous responsabilité mécanicien", "Quarantainée et non installée", "Acceptée si visuellement conforme", "Utilisée pour essais en vol"], "answer": 1 },
+{ "chapter":"Réglementation", "q": "Le SMS (Safety Management System) vise à :", "choices": ["Optimiser la consommation carburant", "Réduire coûts maintenance uniquement", "Améliorer confort cabine", "Identifier et gérer les risques sécurité"], "answer": 3 },
+{ "chapter":"Réglementation", "q": "La culture « just culture » signifie :", "choices": ["Tolérer toute faute grave", "Encourager le reporting sans sanction injustifiée", "Sanctionner systématiquement les erreurs", "Supprimer audits internes"], "answer": 1 },
+{ "chapter":"Réglementation", "q": "Une tâche critique selon Part-145 nécessite :", "choices": ["Procédure spécifique et contrôle renforcé", "Signature pilote obligatoire", "Approbation constructeur immédiate", "Exécution uniquement en atelier"], "answer": 0 },
+{ "chapter":"Réglementation", "q": "La conservation des enregistrements maintenance est exigée :", "choices": ["Pour une durée minimale définie par la réglementation", "Uniquement pendant la validité ARC", "Jusqu’au prochain vol", "6 mois maximum"], "answer": 0 },
+{ "chapter":"Réglementation", "q": "Le rôle principal d’une autorité compétente est :", "choices": ["Former les mécaniciens en interne", "Gérer les stocks pièces", "Planifier les vols commerciaux", "Superviser et contrôler la conformité réglementaire"], "answer": 3 },
+{ "chapter":"Réglementation", "q": "Une erreur de maintenance détectée après CRS implique :", "choices": ["Analyse et actions correctives selon SMS", "Annulation automatique licence", "Suppression MEL", "Radiation avion immédiate"], "answer": 0 },
 
-// chapitre ELECTRICITE B1
-{ "q": "La loi d’Ohm s’exprime par :", "choices": ["U = R × I", "P = U × I", "I = R / U", "R = U × I"], "answer": 0 },
-{ "q": "Dans un circuit série, l’intensité est :", "choices": ["Identique en tout point du circuit", "Maximale au générateur uniquement", "Inversement proportionnelle à la tension", "Divisée entre chaque résistance"], "answer": 0 },
-{ "q": "Dans un circuit parallèle, la tension aux bornes de chaque branche est :", "choices": ["Identique à la tension d’alimentation", "Proportionnelle à la résistance", "Divisée par le nombre de branches", "Maximale sur la branche la plus résistive"], "answer": 0 },
-{ "q": "La puissance électrique dissipée par une résistance peut s’écrire :", "choices": ["P = U × I", "P = U / I", "P = R / I²", "P = U² × R"], "answer": 0 },
-{ "q": "Une augmentation de température d’un conducteur en cuivre entraîne généralement :", "choices": ["Une augmentation de sa résistance", "Une diminution de sa résistance", "Aucun effet sur la résistance", "Une inversion de polarité"], "answer": 0 },
-{ "q": "Le courant alternatif 115V sur avion transport est typiquement :", "choices": ["115V – 400 Hz triphasé", "115V – 50 Hz monophasé", "28V – 400 Hz continu", "230V – 60 Hz triphasé"], "answer": 0 },
-{ "q": "L’utilisation du 400 Hz en aéronautique permet principalement :", "choices": ["De réduire la masse et taille des équipements", "D’augmenter la tension nominale", "De diminuer les pertes Joule uniquement", "D’éviter les redresseurs"], "answer": 0 },
-{ "q": "Un alternateur triphasé génère :", "choices": ["Trois tensions sinusoïdales déphasées de 120°", "Trois tensions continues déphasées", "Une tension pulsée redressée", "Deux phases opposées à 180°"], "answer": 0 },
-{ "q": "Un TRU (Transformer Rectifier Unit) a pour fonction :", "choices": ["Convertir l’AC en DC régulé", "Convertir le DC en AC 400 Hz", "Stabiliser la fréquence", "Augmenter le facteur de puissance"], "answer": 0 },
-{ "q": "Un IDG (Integrated Drive Generator) maintient :", "choices": ["Une fréquence constante malgré variation régime moteur", "Une tension constante en DC uniquement", "Une puissance constante indépendamment de la charge", "Un courant constant quel que soit le régime"], "answer": 0 },
-{ "q": "La fréquence d’un alternateur dépend principalement :", "choices": ["De la vitesse de rotation et du nombre de pôles", "De la tension batterie", "De la résistance du circuit", "Du facteur de puissance"], "answer": 0 },
-{ "q": "Le facteur de puissance en AC est le rapport entre :", "choices": ["Puissance active et puissance apparente", "Puissance réactive et active", "Tension et courant", "Résistance et impédance"], "answer": 0 },
-{ "q": "Dans un circuit inductif pur, le courant est :", "choices": ["En retard de phase sur la tension", "En avance de phase sur la tension", "En phase avec la tension", "Indépendant de la fréquence"], "answer": 0 },
-{ "q": "Dans un circuit capacitif pur, le courant est :", "choices": ["En avance de phase sur la tension", "En retard de phase sur la tension", "Toujours nul", "Indépendant de la tension"], "answer": 0 },
-{ "q": "L’impédance en AC correspond à :", "choices": ["La combinaison de résistance et réactance", "La résistance pure uniquement", "La puissance dissipée", "La tension maximale admissible"], "answer": 0 },
-{ "q": "Un court-circuit se caractérise par :", "choices": ["Une résistance très faible entraînant un courant élevé", "Une tension nulle sans courant", "Une fréquence instable", "Une polarité inversée"], "answer": 0 },
-{ "q": "Un circuit breaker (CB) protège principalement contre :", "choices": ["Les surintensités", "Les surtensions uniquement", "Les baisses de fréquence", "Les défauts de phase"], "answer": 0 },
-{ "q": "Un fusible comparé à un disjoncteur est :", "choices": ["À usage unique après fusion", "Réarmable automatiquement", "Insensible aux surintensités", "Utilisé uniquement en AC"], "answer": 0 },
-{ "q": "La continuité d’un conducteur se vérifie avec :", "choices": ["Un ohmmètre hors tension", "Un voltmètre sous tension", "Un ampèremètre en parallèle", "Un fréquencemètre"], "answer": 0 },
-{ "q": "Un relais est :", "choices": ["Un interrupteur commandé électriquement", "Un transformateur abaisseur", "Un redresseur triphasé", "Un régulateur de fréquence"], "answer": 0 },
-{ "q": "Un contact NO (Normally Open) est :", "choices": ["Ouvert au repos sans alimentation bobine", "Fermé au repos", "Toujours fermé sous tension", "Isolé mécaniquement du circuit"], "answer": 0 },
-{ "q": "La mise à la masse d’un système électrique avion sert à :", "choices": ["Assurer un retour courant et référence commune", "Augmenter la tension disponible", "Diminuer la fréquence", "Isoler électriquement la structure"], "answer": 0 },
-{ "q": "Une batterie Ni-Cd comparée à une batterie plomb-acide :", "choices": ["Supporte mieux les forts courants de décharge", "Est plus sensible à l’effet mémoire avionique", "Nécessite moins de surveillance thermique", "A une tension cellule plus faible"], "answer": 0 },
-{ "q": "La tension nominale d’un système DC avion transport est souvent :", "choices": ["28 V DC", "14 V DC", "115 V DC", "230 V DC"], "answer": 0 },
-{ "q": "Un générateur DC nécessite :", "choices": ["Un collecteur et balais pour redresser mécaniquement", "Un redresseur externe obligatoire", "Un transformateur triphasé", "Un régulateur 400 Hz"], "answer": 0 },
-{ "q": "Un défaut d’isolement vers la masse est détecté par :", "choices": ["Un système de détection de fuite à la masse (GFI)", "Un TRU", "Un IDG", "Un régulateur de tension"], "answer": 0 },
-{ "q": "La chute de tension dans un câble dépend principalement :", "choices": ["De sa résistance et du courant", "De la fréquence uniquement", "De la puissance apparente", "Du facteur de puissance"], "answer": 0 },
-{ "q": "L’effet d’une augmentation de section de câble est :", "choices": ["Diminuer la résistance et la chute de tension", "Augmenter la fréquence", "Augmenter l’impédance", "Diminuer la tension source"], "answer": 0 },
-{ "q": "Un onduleur (inverter) convertit :", "choices": ["Du DC en AC", "De l’AC en DC", "Du 400 Hz en 50 Hz mécaniquement", "Une tension variable en tension fixe DC"], "answer": 0 },
-{ "q": "Un bus électrique essentiel alimente :", "choices": ["Les systèmes critiques en cas panne générateur", "Uniquement l’éclairage cabine", "Les équipements galley", "Les systèmes non essentiels"], "answer": 0 },
-{ "q": "La protection différentielle en triphasé vise à :", "choices": ["Détecter un déséquilibre ou fuite vers masse", "Stabiliser la fréquence", "Augmenter le facteur de puissance", "Limiter la tension nominale"], "answer": 0 },
-{ "q": "Un moteur électrique asynchrone voit sa vitesse dépendre principalement :", "choices": ["De la fréquence d’alimentation", "De la tension uniquement", "Du courant absorbé", "De la résistance statorique"], "answer": 0 },
-{ "q": "Le courant d’appel (inrush current) est :", "choices": ["Un courant initial élevé lors de la mise sous tension", "Un courant permanent de surcharge", "Un défaut d’isolement", "Un courant inverse en DC"], "answer": 0 },
-{ "q": "La polarité en courant continu est importante pour :", "choices": ["Le bon fonctionnement des composants sensibles (diodes, relais polarisés)", "La fréquence du réseau", "Le facteur de puissance", "La puissance apparente"], "answer": 0 },
-{ "q": "Une diode laisse passer le courant :", "choices": ["Dans un seul sens (direct)", "Dans les deux sens", "Uniquement en AC", "Seulement au-dessus de 115V"], "answer": 0 },
+// chapitre ELECTRICITE
+{ "chapter":"Électricité", "q": "La loi d’Ohm s’exprime par :", "choices": ["P = U × I", "U = R × I", "I = R / U", "R = U × I"], "answer": 1 },
+{ "chapter":"Électricité", "q": "Dans un circuit série, l’intensité est :", "choices": ["Identique en tout point du circuit", "Maximale au générateur uniquement", "Inversement proportionnelle à la tension", "Divisée entre chaque résistance"], "answer": 0 },
+{ "chapter":"Électricité", "q": "Dans un circuit parallèle, la tension aux bornes de chaque branche est :", "choices": ["Proportionnelle à la résistance", "Divisée par le nombre de branches", "Maximale sur la branche la plus résistive", "Identique à la tension d’alimentation"], "answer": 3 },
+{ "chapter":"Électricité", "q": "La puissance électrique dissipée par une résistance peut s’écrire :", "choices": ["P = U / I", "P = U × I", "P = R / I²", "P = U² × R"], "answer": 1 },
+{ "chapter":"Électricité", "q": "Une augmentation de température d’un conducteur en cuivre entraîne généralement :", "choices": ["Une augmentation de sa résistance", "Une diminution de sa résistance", "Aucun effet sur la résistance", "Une inversion de polarité"], "answer": 0 },
+{ "chapter":"Électricité", "q": "Le courant alternatif 115V sur avion transport est typiquement :", "choices": ["115V – 50 Hz monophasé", "28V – 400 Hz continu", "230V – 60 Hz triphasé", "115V – 400 Hz triphasé"], "answer": 3 },
+{ "chapter":"Électricité", "q": "L’utilisation du 400 Hz en aéronautique permet principalement :", "choices": ["D’augmenter la tension nominale", "De diminuer les pertes Joule uniquement", "De réduire la masse et taille des équipements", "D’éviter les redresseurs"], "answer": 2 },
+{ "chapter":"Électricité", "q": "Un alternateur triphasé génère :", "choices": ["Trois tensions sinusoïdales déphasées de 120°", "Trois tensions continues déphasées", "Une tension pulsée redressée", "Deux phases opposées à 180°"], "answer": 0 },
+{ "chapter":"Électricité", "q": "Un TRU (Transformer Rectifier Unit) a pour fonction :", "choices": ["Convertir l’AC en DC régulé", "Convertir le DC en AC 400 Hz", "Stabiliser la fréquence", "Augmenter le facteur de puissance"], "answer": 0 },
+{ "chapter":"Électricité", "q": "Un IDG (Integrated Drive Generator) maintient :", "choices": ["Une fréquence constante malgré variation régime moteur", "Une tension constante en DC uniquement", "Une puissance constante indépendamment de la charge", "Un courant constant quel que soit le régime"], "answer": 0 },
+{ "chapter":"Électricité", "q": "La fréquence d’un alternateur dépend principalement :", "choices": ["De la tension batterie", "De la résistance du circuit", "De la vitesse de rotation et du nombre de pôles", "Du facteur de puissance"], "answer": 2 },
+{ "chapter":"Électricité", "q": "Le facteur de puissance en AC est le rapport entre :", "choices": ["Puissance réactive et active", "Tension et courant", "Puissance active et puissance apparente", "Résistance et impédance"], "answer": 2 },
+{ "chapter":"Électricité", "q": "Dans un circuit inductif pur, le courant est :", "choices": ["En avance de phase sur la tension", "En phase avec la tension", "Indépendant de la fréquence", "En retard de phase sur la tension"], "answer": 3 },
+{ "chapter":"Électricité", "q": "Dans un circuit capacitif pur, le courant est :", "choices": ["En retard de phase sur la tension", "En avance de phase sur la tension", "Toujours nul", "Indépendant de la tension"], "answer": 1 },
+{ "chapter":"Électricité", "q": "L’impédance en AC correspond à :", "choices": ["La résistance pure uniquement", "La combinaison de résistance et réactance", "La puissance dissipée", "La tension maximale admissible"], "answer": 1 },
+{ "chapter":"Électricité", "q": "Un court-circuit se caractérise par :", "choices": ["Une tension nulle sans courant", "Une fréquence instable", "Une polarité inversée", "Une résistance très faible entraînant un courant élevé"], "answer": 3 },
+{ "chapter":"Électricité", "q": "Un circuit breaker (CB) protège principalement contre :", "choices": ["Les surtensions uniquement", "Les baisses de fréquence", "Les surintensités", "Les défauts de phase"], "answer": 2 },
+{ "chapter":"Électricité", "q": "Un fusible comparé à un disjoncteur est :", "choices": ["À usage unique après fusion", "Réarmable automatiquement", "Insensible aux surintensités", "Utilisé uniquement en AC"], "answer": 0 },
+{ "chapter":"Électricité", "q": "La continuité d’un conducteur se vérifie avec :", "choices": ["Un voltmètre sous tension", "Un ampèremètre en parallèle", "Un ohmmètre hors tension", "Un fréquencemètre"], "answer": 2 },
+{ "chapter":"Électricité", "q": "Un relais est :", "choices": ["Un interrupteur commandé électriquement", "Un transformateur abaisseur", "Un redresseur triphasé", "Un régulateur de fréquence"], "answer": 0 },
+{ "chapter":"Électricité", "q": "Un contact NO (Normally Open) est :", "choices": ["Fermé au repos", "Toujours fermé sous tension", "Isolé mécaniquement du circuit", "Ouvert au repos sans alimentation bobine"], "answer": 3 },
+{ "chapter":"Électricité", "q": "La mise à la masse d’un système électrique avion sert à :", "choices": ["Assurer un retour courant et référence commune", "Augmenter la tension disponible", "Diminuer la fréquence", "Isoler électriquement la structure"], "answer": 0 },
+{ "chapter":"Électricité", "q": "Une batterie Ni-Cd comparée à une batterie plomb-acide :", "choices": ["Est plus sensible à l’effet mémoire avionique", "Supporte mieux les forts courants de décharge", "Nécessite moins de surveillance thermique", "A une tension cellule plus faible"], "answer": 1 },
+{ "chapter":"Électricité", "q": "La tension nominale d’un système DC avion transport est souvent :", "choices": ["14 V DC", "115 V DC", "230 V DC", "28 V DC"], "answer": 3 },
+{ "chapter":"Électricité", "q": "Un générateur DC nécessite :", "choices": ["Un redresseur externe obligatoire", "Un transformateur triphasé", "Un collecteur et balais pour redresser mécaniquement", "Un régulateur 400 Hz"], "answer": 2 },
+{ "chapter":"Électricité", "q": "Un défaut d’isolement vers la masse est détecté par :", "choices": ["Un TRU", "Un IDG", "Un système de détection de fuite à la masse (GFI)", "Un régulateur de tension"], "answer": 2 },
+{ "chapter":"Électricité", "q": "La chute de tension dans un câble dépend principalement :", "choices": ["De la fréquence uniquement", "De la puissance apparente", "De sa résistance et du courant", "Du facteur de puissance"], "answer": 2 },
+{ "chapter":"Électricité", "q": "L’effet d’une augmentation de section de câble est :", "choices": ["Augmenter la fréquence", "Augmenter l’impédance", "Diminuer la tension source", "Diminuer la résistance et la chute de tension"], "answer": 3 },
+{ "chapter":"Électricité", "q": "Un onduleur (inverter) convertit :", "choices": ["De l’AC en DC", "Du 400 Hz en 50 Hz mécaniquement", "Une tension variable en tension fixe DC", "Du DC en AC"], "answer": 3 },
+{ "chapter":"Électricité", "q": "Un bus électrique essentiel alimente :", "choices": ["Uniquement l’éclairage cabine", "Les équipements galley", "Les systèmes non essentiels", "Les systèmes critiques en cas panne générateur"], "answer": 3 },
+{ "chapter":"Électricité", "q": "La protection différentielle en triphasé vise à :", "choices": ["Stabiliser la fréquence", "Détecter un déséquilibre ou fuite vers masse", "Augmenter le facteur de puissance", "Limiter la tension nominale"], "answer": 1 },
+{ "chapter":"Électricité", "q": "Un moteur électrique asynchrone voit sa vitesse dépendre principalement :", "choices": ["De la fréquence d’alimentation", "De la tension uniquement", "Du courant absorbé", "De la résistance statorique"], "answer": 0 },
+{ "chapter":"Électricité", "q": "Le courant d’appel (inrush current) est :", "choices": ["Un courant permanent de surcharge", "Un défaut d’isolement", "Un courant initial élevé lors de la mise sous tension", "Un courant inverse en DC"], "answer": 2 },
+{ "chapter":"Électricité", "q": "La polarité en courant continu est importante pour :", "choices": ["La fréquence du réseau", "Le bon fonctionnement des composants sensibles (diodes, relais polarisés)", "Le facteur de puissance", "La puissance apparente"], "answer": 1 },
+{ "chapter":"Électricité", "q": "Une diode laisse passer le courant :", "choices": ["Dans les deux sens", "Dans un seul sens (direct)", "Uniquement en AC", "Seulement au-dessus de 115V"], "answer": 1 },
 
-// chapitre STRUCTURES B1
-{ "q": "Une structure semi-monocoque reprend principalement les efforts grâce :", "choices": ["Au revêtement travaillant associé aux cadres et lisses", "Uniquement aux longerons principaux", "Aux nervures seules", "Au plancher cabine renforcé"], "answer": 0 },
-{ "q": "Le rôle principal d’un longeron d’aile est de :", "choices": ["Reprendre les efforts de flexion principaux", "Maintenir la forme aérodynamique du profil uniquement", "Supporter les équipements cabine", "Transmettre la pression hydraulique"], "answer": 0 },
-{ "q": "Une nervure d’aile sert principalement à :", "choices": ["Maintenir le profil aérodynamique et répartir les charges", "Reprendre seule la flexion longitudinale", "Fixer le train principal uniquement", "Assurer l’étanchéité carburant"], "answer": 0 },
-{ "q": "Le phénomène de flambage (buckling) concerne surtout :", "choices": ["Les éléments comprimés minces soumis à charge critique", "Les pièces en traction pure", "Les rivets en cisaillement simple", "Les câbles de commande en tension"], "answer": 0 },
-{ "q": "Une contrainte de cisaillement est typiquement appliquée sur :", "choices": ["Un rivet reliant deux tôles", "Un câble en traction", "Un longeron en flexion pure", "Une peau en compression radiale"], "answer": 0 },
-{ "q": "La corrosion galvanique apparaît lorsque :", "choices": ["Deux métaux différents sont en contact en présence d’électrolyte", "Un alliage aluminium est poli", "Un composite est exposé UV", "Une pièce est surdimensionnée"], "answer": 0 },
-{ "q": "Un rivet à tige pleine (solid rivet) est principalement sollicité en :", "choices": ["Cisaillement", "Compression axiale pure", "Torsion", "Flexion longitudinale"], "answer": 0 },
-{ "q": "Un rivet « Hi-Lok » est utilisé lorsqu’on recherche :", "choices": ["Une fixation à haute résistance avec tolérance serrée", "Un assemblage démontable manuel rapide", "Un montage uniquement provisoire", "Une liaison souple antivibratoire"], "answer": 0 },
-{ "q": "Le matage excessif d’un rivet peut entraîner :", "choices": ["Une fissuration locale du matériau", "Une augmentation de résistance mécanique", "Une meilleure étanchéité structurelle", "Une réduction de corrosion"], "answer": 0 },
-{ "q": "La fatigue des matériaux est favorisée par :", "choices": ["Des cycles répétés de contraintes", "Une charge statique constante faible", "Une température ambiante stable", "Une absence de vibrations"], "answer": 0 },
-{ "q": "Une fissure de fatigue débute généralement :", "choices": ["À un concentrateur de contraintes", "Au centre d’une tôle homogène", "Sur une surface polie sans défaut", "Sur une zone en compression pure"], "answer": 0 },
-{ "q": "Le « stop drilling » consiste à :", "choices": ["Percer en extrémité de fissure pour ralentir sa propagation", "Supprimer totalement la fissure", "Remplacer immédiatement la pièce", "Augmenter la rigidité locale"], "answer": 0 },
-{ "q": "Un composite carbone présente comme caractéristique :", "choices": ["Une résistance élevée spécifique mais anisotrope", "Une isotropie parfaite dans toutes directions", "Une sensibilité nulle aux impacts", "Une conductivité électrique identique à l’aluminium"], "answer": 0 },
-{ "q": "Le phénomène de délaminage dans un composite correspond à :", "choices": ["Une séparation entre couches stratifiées", "Une fissure traversante métallique", "Une corrosion intergranulaire", "Un flambage plastique"], "answer": 0 },
-{ "q": "Une réparation composite structurale requiert :", "choices": ["Respect strict des données SRM et procédures approuvées", "Ponçage simple et peinture", "Rivetage standard aluminium", "Application mastic seul"], "answer": 0 },
-{ "q": "La corrosion intergranulaire affecte principalement :", "choices": ["Les joints de grains d’un alliage", "La surface externe uniquement", "Les rivets en acier inox", "Les composites fibre verre"], "answer": 0 },
-{ "q": "Un traitement d’anodisation sur aluminium vise à :", "choices": ["Améliorer la résistance à la corrosion", "Augmenter la ductilité", "Réduire la conductivité thermique", "Supprimer la fatigue"], "answer": 0 },
-{ "q": "La fonction principale d’un cadre (frame) fuselage est de :", "choices": ["Maintenir la section circulaire et reprendre charges radiales", "Supporter seul les efforts longitudinaux", "Fixer les gouvernes", "Assurer l’écoulement carburant"], "answer": 0 },
-{ "q": "Une lisse (stringer) fuselage contribue surtout à :", "choices": ["La rigidité longitudinale", "La pressurisation cabine uniquement", "La fixation train avant", "La ventilation soute"], "answer": 0 },
-{ "q": "La pressurisation cabine induit principalement :", "choices": ["Des efforts de traction sur le revêtement fuselage", "Une compression radiale interne", "Un cisaillement pur sur cadres", "Une torsion constante"], "answer": 0 },
-{ "q": "Un longeron fissuré au-delà des limites SRM nécessite :", "choices": ["Une réparation approuvée ou remplacement", "Un simple contrôle visuel périodique", "Un masticage provisoire", "Une réduction masse avion"], "answer": 0 },
-{ "q": "Le NDT par ressuage permet de détecter :", "choices": ["Des fissures débouchantes de surface", "Des défauts internes profonds uniquement", "Des défauts uniquement ferromagnétiques", "Des défauts dans composites carbone"], "answer": 0 },
-{ "q": "La magnétoscopie est applicable uniquement sur :", "choices": ["Matériaux ferromagnétiques", "Alliages aluminium", "Composites carbone", "Titane pur non magnétique"], "answer": 0 },
-{ "q": "Le contrôle par ultrasons permet :", "choices": ["La détection de défauts internes", "Uniquement fissures visibles", "La mesure de corrosion galvanique", "La détection fuite carburant"], "answer": 0 },
-{ "q": "Une gouverne équilibrée statiquement signifie :", "choices": ["Centre de gravité proche de l’axe rotation", "Aucune masse d’équilibrage", "Poids maximal autorisé", "Équilibrage dynamique moteur"], "answer": 0 },
-{ "q": "Un volet (flap) augmente principalement :", "choices": ["La portance et la traînée", "La vitesse de croisière", "La rigidité structurelle aile", "La masse maximale"], "answer": 0 },
-{ "q": "Un aileron sert à contrôler :", "choices": ["Le roulis", "Le tangage", "Le lacet", "La portance totale"], "answer": 0 },
-{ "q": "Une corrosion exfoliante se manifeste par :", "choices": ["Un décollement en couches du matériau", "Un simple changement couleur", "Une fissure nette transversale", "Un flambage immédiat"], "answer": 0 },
-{ "q": "Le traitement alodine a pour but :", "choices": ["Protection anticorrosion avant peinture", "Augmenter la résistance mécanique", "Modifier la géométrie pièce", "Réduire contraintes internes"], "answer": 0 },
-{ "q": "Un joint d’étanchéité carburant aile doit résister à :", "choices": ["Carburant et variations température", "Pression cabine uniquement", "Efforts traction maximale", "Cisaillement pur rivet"], "answer": 0 },
-{ "q": "La tolérance trou/rivet trop importante peut entraîner :", "choices": ["Jeu excessif et concentration contraintes", "Augmentation résistance assemblage", "Diminution fatigue", "Suppression corrosion"], "answer": 0 },
-{ "q": "Une réparation « doubler plate » consiste à :", "choices": ["Ajouter une plaque de renfort rivetée", "Remplacer intégralement la section", "Coller un composite sans rivet", "Supprimer la charge appliquée"], "answer": 0 },
-{ "q": "La déformation plastique se produit lorsque :", "choices": ["La limite élastique est dépassée", "La contrainte reste sous limite élastique", "La charge est retirée immédiatement", "La température diminue"], "answer": 0 },
-{ "q": "Un matériau isotrope présente :", "choices": ["Les mêmes propriétés dans toutes directions", "Des propriétés variables selon fibre", "Une résistance uniquement longitudinale", "Une rigidité nulle en torsion"], "answer": 0 },
-{ "q": "Le contrôle visuel détaillé (DET) implique :", "choices": ["Inspection rapprochée avec éclairage adéquat", "Observation à distance uniquement", "Essai destructif local", "Magnétoscopie obligatoire"], "answer": 0 },
+// chapitre STRUCTURES
+{ "chapter":"Structures", "q": "Une structure semi-monocoque reprend principalement les efforts grâce :", "choices": ["Uniquement aux longerons principaux", "Aux nervures seules", "Au revêtement travaillant associé aux cadres et lisses", "Au plancher cabine renforcé"], "answer": 2 },
+{ "chapter":"Structures", "q": "Le rôle principal d’un longeron d’aile est de :", "choices": ["Reprendre les efforts de flexion principaux", "Maintenir la forme aérodynamique du profil uniquement", "Supporter les équipements cabine", "Transmettre la pression hydraulique"], "answer": 0 },
+{ "chapter":"Structures", "q": "Une nervure d’aile sert principalement à :", "choices": ["Maintenir le profil aérodynamique et répartir les charges", "Reprendre seule la flexion longitudinale", "Fixer le train principal uniquement", "Assurer l’étanchéité carburant"], "answer": 0 },
+{ "chapter":"Structures", "q": "Le phénomène de flambage (buckling) concerne surtout :", "choices": ["Les pièces en traction pure", "Les éléments comprimés minces soumis à charge critique", "Les rivets en cisaillement simple", "Les câbles de commande en tension"], "answer": 1 },
+{ "chapter":"Structures", "q": "Une contrainte de cisaillement est typiquement appliquée sur :", "choices": ["Un câble en traction", "Un longeron en flexion pure", "Un rivet reliant deux tôles", "Une peau en compression radiale"], "answer": 2 },
+{ "chapter":"Structures", "q": "La corrosion galvanique apparaît lorsque :", "choices": ["Un alliage aluminium est poli", "Un composite est exposé UV", "Deux métaux différents sont en contact en présence d’électrolyte", "Une pièce est surdimensionnée"], "answer": 2 },
+{ "chapter":"Structures", "q": "Un rivet à tige pleine (solid rivet) est principalement sollicité en :", "choices": ["Compression axiale pure", "Torsion", "Flexion longitudinale", "Cisaillement"], "answer": 3 },
+{ "chapter":"Structures", "q": "Un rivet « Hi-Lok » est utilisé lorsqu’on recherche :", "choices": ["Un assemblage démontable manuel rapide", "Un montage uniquement provisoire", "Une fixation à haute résistance avec tolérance serrée", "Une liaison souple antivibratoire"], "answer": 2 },
+{ "chapter":"Structures", "q": "Le matage excessif d’un rivet peut entraîner :", "choices": ["Une augmentation de résistance mécanique", "Une fissuration locale du matériau", "Une meilleure étanchéité structurelle", "Une réduction de corrosion"], "answer": 1 },
+{ "chapter":"Structures", "q": "La fatigue des matériaux est favorisée par :", "choices": ["Une charge statique constante faible", "Une température ambiante stable", "Des cycles répétés de contraintes", "Une absence de vibrations"], "answer": 2 },
+{ "chapter":"Structures", "q": "Une fissure de fatigue débute généralement :", "choices": ["Au centre d’une tôle homogène", "Sur une surface polie sans défaut", "Sur une zone en compression pure", "À un concentrateur de contraintes"], "answer": 3 },
+{ "chapter":"Structures", "q": "Le « stop drilling » consiste à :", "choices": ["Supprimer totalement la fissure", "Percer en extrémité de fissure pour ralentir sa propagation", "Remplacer immédiatement la pièce", "Augmenter la rigidité locale"], "answer": 1 },
+{ "chapter":"Structures", "q": "Un composite carbone présente comme caractéristique :", "choices": ["Une isotropie parfaite dans toutes directions", "Une sensibilité nulle aux impacts", "Une résistance élevée spécifique mais anisotrope", "Une conductivité électrique identique à l’aluminium"], "answer": 2 },
+{ "chapter":"Structures", "q": "Le phénomène de délaminage dans un composite correspond à :", "choices": ["Une fissure traversante métallique", "Une corrosion intergranulaire", "Une séparation entre couches stratifiées", "Un flambage plastique"], "answer": 2 },
+{ "chapter":"Structures", "q": "Une réparation composite structurale requiert :", "choices": ["Ponçage simple et peinture", "Rivetage standard aluminium", "Respect strict des données SRM et procédures approuvées", "Application mastic seul"], "answer": 2 },
+{ "chapter":"Structures", "q": "La corrosion intergranulaire affecte principalement :", "choices": ["Les joints de grains d’un alliage", "La surface externe uniquement", "Les rivets en acier inox", "Les composites fibre verre"], "answer": 0 },
+{ "chapter":"Structures", "q": "Un traitement d’anodisation sur aluminium vise à :", "choices": ["Augmenter la ductilité", "Améliorer la résistance à la corrosion", "Réduire la conductivité thermique", "Supprimer la fatigue"], "answer": 1 },
+{ "chapter":"Structures", "q": "La fonction principale d’un cadre (frame) fuselage est de :", "choices": ["Supporter seul les efforts longitudinaux", "Fixer les gouvernes", "Maintenir la section circulaire et reprendre charges radiales", "Assurer l’écoulement carburant"], "answer": 2 },
+{ "chapter":"Structures", "q": "Une lisse (stringer) fuselage contribue surtout à :", "choices": ["La rigidité longitudinale", "La pressurisation cabine uniquement", "La fixation train avant", "La ventilation soute"], "answer": 0 },
+{ "chapter":"Structures", "q": "La pressurisation cabine induit principalement :", "choices": ["Une compression radiale interne", "Des efforts de traction sur le revêtement fuselage", "Un cisaillement pur sur cadres", "Une torsion constante"], "answer": 1 },
+{ "chapter":"Structures", "q": "Un longeron fissuré au-delà des limites SRM nécessite :", "choices": ["Une réparation approuvée ou remplacement", "Un simple contrôle visuel périodique", "Un masticage provisoire", "Une réduction masse avion"], "answer": 0 },
+{ "chapter":"Structures", "q": "Le NDT par ressuage permet de détecter :", "choices": ["Des défauts internes profonds uniquement", "Des défauts uniquement ferromagnétiques", "Des défauts dans composites carbone", "Des fissures débouchantes de surface"], "answer": 3 },
+{ "chapter":"Structures", "q": "La magnétoscopie est applicable uniquement sur :", "choices": ["Alliages aluminium", "Composites carbone", "Matériaux ferromagnétiques", "Titane pur non magnétique"], "answer": 2 },
+{ "chapter":"Structures", "q": "Le contrôle par ultrasons permet :", "choices": ["Uniquement fissures visibles", "La mesure de corrosion galvanique", "La détection fuite carburant", "La détection de défauts internes"], "answer": 3 },
+{ "chapter":"Structures", "q": "Une gouverne équilibrée statiquement signifie :", "choices": ["Aucune masse d’équilibrage", "Centre de gravité proche de l’axe rotation", "Poids maximal autorisé", "Équilibrage dynamique moteur"], "answer": 1 },
+{ "chapter":"Structures", "q": "Un volet (flap) augmente principalement :", "choices": ["La portance et la traînée", "La vitesse de croisière", "La rigidité structurelle aile", "La masse maximale"], "answer": 0 },
+{ "chapter":"Structures", "q": "Un aileron sert à contrôler :", "choices": ["Le tangage", "Le lacet", "Le roulis", "La portance totale"], "answer": 2 },
+{ "chapter":"Structures", "q": "Une corrosion exfoliante se manifeste par :", "choices": ["Un simple changement couleur", "Une fissure nette transversale", "Un flambage immédiat", "Un décollement en couches du matériau"], "answer": 3 },
+{ "chapter":"Structures", "q": "Le traitement alodine a pour but :", "choices": ["Protection anticorrosion avant peinture", "Augmenter la résistance mécanique", "Modifier la géométrie pièce", "Réduire contraintes internes"], "answer": 0 },
+{ "chapter":"Structures", "q": "Un joint d’étanchéité carburant aile doit résister à :", "choices": ["Carburant et variations température", "Pression cabine uniquement", "Efforts traction maximale", "Cisaillement pur rivet"], "answer": 0 },
+{ "chapter":"Structures", "q": "La tolérance trou/rivet trop importante peut entraîner :", "choices": ["Augmentation résistance assemblage", "Diminution fatigue", "Jeu excessif et concentration contraintes", "Suppression corrosion"], "answer": 2 },
+{ "chapter":"Structures", "q": "Une réparation « doubler plate » consiste à :", "choices": ["Remplacer intégralement la section", "Ajouter une plaque de renfort rivetée", "Coller un composite sans rivet", "Supprimer la charge appliquée"], "answer": 1 },
+{ "chapter":"Structures", "q": "La déformation plastique se produit lorsque :", "choices": ["La contrainte reste sous limite élastique", "La charge est retirée immédiatement", "La température diminue", "La limite élastique est dépassée"], "answer": 3 },
+{ "chapter":"Structures", "q": "Un matériau isotrope présente :", "choices": ["Des propriétés variables selon fibre", "Une résistance uniquement longitudinale", "Les mêmes propriétés dans toutes directions", "Une rigidité nulle en torsion"], "answer": 2 },
+{ "chapter":"Structures", "q": "Le contrôle visuel détaillé (DET) implique :", "choices": ["Observation à distance uniquement", "Essai destructif local", "Magnétoscopie obligatoire", "Inspection rapprochée avec éclairage adéquat"], "answer": 3 },
 
-// chapitre MAINTENANCE B1
-{ "q": "La maintenance préventive a pour objectif principal :", "choices": ["Réduire la probabilité de panne par actions planifiées", "Réparer uniquement après défaillance", "Augmenter les performances moteur", "Modifier la configuration avion"], "answer": 0 },
-{ "q": "La maintenance corrective est déclenchée :", "choices": ["Après détection d’une panne ou anomalie", "À intervalle fixe calendaire", "À chaque inspection journalière", "Avant toute visite programmée"], "answer": 0 },
-{ "q": "Une inspection « General Visual Inspection (GVI) » implique :", "choices": ["Un examen visuel global sans démontage complexe", "Un contrôle dimensionnel précis au comparateur", "Une inspection NDT systématique", "Un démontage complet du système"], "answer": 0 },
-{ "q": "Une inspection « Detailed Inspection (DET) » se caractérise par :", "choices": ["Un examen approfondi avec éclairage et accès amélioré", "Une observation à distance sans éclairage", "Un essai destructif", "Une vérification documentaire uniquement"], "answer": 0 },
-{ "q": "Le NDT par ressuage est particulièrement adapté pour :", "choices": ["Détecter fissures débouchantes en surface", "Mesurer l’épaisseur de tôle", "Identifier défauts internes profonds uniquement", "Détecter corrosion galvanique cachée"], "answer": 0 },
-{ "q": "La magnétoscopie est inefficace sur :", "choices": ["Alliages d’aluminium non ferromagnétiques", "Aciers faiblement alliés", "Pièces en fer doux", "Aciers carbone"], "answer": 0 },
-{ "q": "Un contrôle par ultrasons permet principalement :", "choices": ["Détection de défauts internes et mesure d’épaisseur", "Inspection visuelle à distance", "Analyse chimique surface", "Mesure tension électrique"], "answer": 0 },
-{ "q": "Le FOD (Foreign Object Damage) désigne :", "choices": ["Dommages causés par corps étrangers", "Fatigue opérationnelle détectée", "Fuite hydraulique interne", "Défaut logiciel FADEC"], "answer": 0 },
-{ "q": "Le respect du couple de serrage est essentiel pour :", "choices": ["Assurer précharge correcte sans endommager fixation", "Augmenter la puissance moteur", "Réduire la corrosion", "Diminuer la masse assemblage"], "answer": 0 },
-{ "q": "Une clé dynamométrique doit être :", "choices": ["Étalonnée périodiquement", "Utilisée uniquement en serrage maximal", "Employée sans vérification préalable", "Graissée avant chaque usage interne"], "answer": 0 },
-{ "q": "Le « troubleshooting » consiste à :", "choices": ["Identifier méthodiquement la cause d’une panne", "Remplacer systématiquement les composants", "Effacer les messages ECAM", "Reporter la panne à plus tard"], "answer": 0 },
-{ "q": "Un « deferred defect » est :", "choices": ["Une anomalie reportée selon MEL sous conditions", "Une panne supprimée définitivement", "Un défaut structurel majeur", "Une erreur administrative"], "answer": 0 },
-{ "q": "La traçabilité d’une pièce installée nécessite :", "choices": ["Un certificat libératoire valide", "Une inspection visuelle uniquement", "Un accord verbal fournisseur", "Un ancien logbook moteur"], "answer": 0 },
-{ "q": "Une pièce déclarée « unserviceable » doit être :", "choices": ["Identifiée et isolée pour éviter réutilisation", "Remontée pour test en vol", "Stockée sans étiquette", "Nettoyée et réinstallée"], "answer": 0 },
-{ "q": "La lubrification inadéquate d’un roulement peut entraîner :", "choices": ["Échauffement et usure prématurée", "Augmentation couple moteur", "Réduction vibration", "Amélioration rendement"], "answer": 0 },
-{ "q": "Un contrôle boroscopique permet :", "choices": ["Inspection interne moteur sans démontage complet", "Analyse carburant", "Mesure pression hydraulique", "Test résistance électrique"], "answer": 0 },
-{ "q": "La documentation AMM doit être utilisée :", "choices": ["Comme référence principale pour exécution tâche", "Seulement en cas de doute", "Uniquement pour formation initiale", "Remplacée par expérience personnelle"], "answer": 0 },
-{ "q": "Un « independent inspection » est requis lorsque :", "choices": ["La tâche est critique pour la sécurité des vols", "La tâche est mineure", "Le mécanicien est expérimenté", "Le délai maintenance est court"], "answer": 0 },
-{ "q": "Un écrou autofreiné doit être remplacé si :", "choices": ["La résistance au serrage n’est plus conforme", "Il est légèrement sale", "Il a été peint", "Il est monté horizontalement"], "answer": 0 },
-{ "q": "Le marquage « torque stripe » permet :", "choices": ["Vérification visuelle d’un desserrage éventuel", "Augmenter couple serrage", "Identifier matériau fixation", "Réduire corrosion"], "answer": 0 },
-{ "q": "Un outil FOD contrôlé implique :", "choices": ["Inventaire et comptage systématique après intervention", "Stockage libre atelier", "Utilisation partagée sans suivi", "Nettoyage hebdomadaire uniquement"], "answer": 0 },
-{ "q": "Le stockage des produits chimiques maintenance exige :", "choices": ["Respect des fiches de données sécurité (FDS)", "Stockage à proximité batterie", "Mélange possible sans précaution", "Absence d’étiquetage spécifique"], "answer": 0 },
-{ "q": "Une tâche de maintenance doit être signée lorsque :", "choices": ["Elle est terminée conformément aux données approuvées", "Elle est commencée", "Elle est planifiée", "Elle est validée par pilote"], "answer": 0 },
-{ "q": "Le contrôle corrosion préventif inclut :", "choices": ["Nettoyage, inspection et traitement protecteur", "Augmentation pression cabine", "Application carburant protecteur", "Réduction intervalle vol"], "answer": 0 },
-{ "q": "Une inspection zonale consiste à :", "choices": ["Examiner une zone spécifique indépendamment système", "Inspecter uniquement un équipement précis", "Analyser performances moteur", "Vérifier documents logbook"], "answer": 0 },
-{ "q": "La durée de vie « Hard Time » signifie :", "choices": ["Remplacement obligatoire à échéance fixe", "Remplacement selon état observé", "Remplacement uniquement après panne", "Révision facultative"], "answer": 0 },
-{ "q": "La maintenance « On Condition » implique :", "choices": ["Surveillance état avant décision remplacement", "Remplacement systématique", "Ignorer données inspections", "Prolongation automatique TBO"], "answer": 0 },
-{ "q": "Un TBO (Time Between Overhaul) représente :", "choices": ["Intervalle recommandé entre révisions majeures", "Durée de vie maximale cellule", "Cycle inspection journalière", "Limite carburant embarqué"], "answer": 0 },
-{ "q": "Le nettoyage avant inspection structure est important pour :", "choices": ["Permettre détection défauts précis", "Augmenter rigidité pièce", "Modifier propriétés matériau", "Réduire masse avion"], "answer": 0 },
-{ "q": "Une contamination hydraulique peut entraîner :", "choices": ["Usure composants et dysfonctionnements", "Augmentation pression stable", "Amélioration lubrification", "Réduction température fluide"], "answer": 0 },
-{ "q": "La gestion des outils calibrés impose :", "choices": ["Suivi d’étalonnage périodique documenté", "Utilisation libre sans contrôle", "Étalonnage annuel facultatif", "Remplacement systématique mensuel"], "answer": 0 },
-{ "q": "Un contrôle après maintenance (post-maintenance check) vise à :", "choices": ["Vérifier bon fonctionnement avant remise en service", "Augmenter puissance moteur", "Réduire documentation", "Supprimer inspection visuelle"], "answer": 0 },
-{ "q": "Une erreur de maintenance doit être :", "choices": ["Rapportée selon procédure SMS", "Ignorée si mineure", "Corrigée sans traçabilité", "Signalée uniquement verbalement"], "answer": 0 },
-{ "q": "Le respect des EPI (équipements protection individuelle) est nécessaire pour :", "choices": ["Assurer sécurité du personnel", "Réduire temps intervention", "Augmenter précision mesure", "Améliorer qualité documentation"], "answer": 0 },
-{ "q": "Une consigne de navigabilité (AD) applicable doit être :", "choices": ["Appliquée avant échéance définie", "Ignorée si non critique visuellement", "Appliquée uniquement moteur", "Appliquée après TBO"], "answer": 0 },
+// chapitre MAINTENANCE
+{ "chapter":"Maintenance", "q": "La maintenance préventive a pour objectif principal :", "choices": ["Réparer uniquement après défaillance", "Augmenter les performances moteur", "Réduire la probabilité de panne par actions planifiées", "Modifier la configuration avion"], "answer": 2 },
+{ "chapter":"Maintenance", "q": "La maintenance corrective est déclenchée :", "choices": ["À intervalle fixe calendaire", "À chaque inspection journalière", "Avant toute visite programmée", "Après détection d’une panne ou anomalie"], "answer": 3 },
+{ "chapter":"Maintenance", "q": "Une inspection « General Visual Inspection (GVI) » implique :", "choices": ["Un contrôle dimensionnel précis au comparateur", "Un examen visuel global sans démontage complexe", "Une inspection NDT systématique", "Un démontage complet du système"], "answer": 1 },
+{ "chapter":"Maintenance", "q": "Une inspection « Detailed Inspection (DET) » se caractérise par :", "choices": ["Une observation à distance sans éclairage", "Un essai destructif", "Un examen approfondi avec éclairage et accès amélioré", "Une vérification documentaire uniquement"], "answer": 2 },
+{ "chapter":"Maintenance", "q": "Le NDT par ressuage est particulièrement adapté pour :", "choices": ["Détecter fissures débouchantes en surface", "Mesurer l’épaisseur de tôle", "Identifier défauts internes profonds uniquement", "Détecter corrosion galvanique cachée"], "answer": 0 },
+{ "chapter":"Maintenance", "q": "La magnétoscopie est inefficace sur :", "choices": ["Aciers faiblement alliés", "Pièces en fer doux", "Aciers carbone", "Alliages d’aluminium non ferromagnétiques"], "answer": 3 },
+{ "chapter":"Maintenance", "q": "Un contrôle par ultrasons permet principalement :", "choices": ["Inspection visuelle à distance", "Analyse chimique surface", "Détection de défauts internes et mesure d’épaisseur", "Mesure tension électrique"], "answer": 2 },
+{ "chapter":"Maintenance", "q": "Le FOD (Foreign Object Damage) désigne :", "choices": ["Fatigue opérationnelle détectée", "Dommages causés par corps étrangers", "Fuite hydraulique interne", "Défaut logiciel FADEC"], "answer": 1 },
+{ "chapter":"Maintenance", "q": "Le respect du couple de serrage est essentiel pour :", "choices": ["Augmenter la puissance moteur", "Réduire la corrosion", "Diminuer la masse assemblage", "Assurer précharge correcte sans endommager fixation"], "answer": 3 },
+{ "chapter":"Maintenance", "q": "Une clé dynamométrique doit être :", "choices": ["Utilisée uniquement en serrage maximal", "Employée sans vérification préalable", "Graissée avant chaque usage interne", "Étalonnée périodiquement"], "answer": 3 },
+{ "chapter":"Maintenance", "q": "Le « troubleshooting » consiste à :", "choices": ["Remplacer systématiquement les composants", "Effacer les messages ECAM", "Identifier méthodiquement la cause d’une panne", "Reporter la panne à plus tard"], "answer": 2 },
+{ "chapter":"Maintenance", "q": "Un « deferred defect » est :", "choices": ["Une panne supprimée définitivement", "Une anomalie reportée selon MEL sous conditions", "Un défaut structurel majeur", "Une erreur administrative"], "answer": 1 },
+{ "chapter":"Maintenance", "q": "La traçabilité d’une pièce installée nécessite :", "choices": ["Une inspection visuelle uniquement", "Un accord verbal fournisseur", "Un certificat libératoire valide", "Un ancien logbook moteur"], "answer": 2 },
+{ "chapter":"Maintenance", "q": "Une pièce déclarée « unserviceable » doit être :", "choices": ["Identifiée et isolée pour éviter réutilisation", "Remontée pour test en vol", "Stockée sans étiquette", "Nettoyée et réinstallée"], "answer": 0 },
+{ "chapter":"Maintenance", "q": "La lubrification inadéquate d’un roulement peut entraîner :", "choices": ["Augmentation couple moteur", "Échauffement et usure prématurée", "Réduction vibration", "Amélioration rendement"], "answer": 1 },
+{ "chapter":"Maintenance", "q": "Un contrôle boroscopique permet :", "choices": ["Analyse carburant", "Inspection interne moteur sans démontage complet", "Mesure pression hydraulique", "Test résistance électrique"], "answer": 1 },
+{ "chapter":"Maintenance", "q": "La documentation AMM doit être utilisée :", "choices": ["Seulement en cas de doute", "Comme référence principale pour exécution tâche", "Uniquement pour formation initiale", "Remplacée par expérience personnelle"], "answer": 1 },
+{ "chapter":"Maintenance", "q": "Un « independent inspection » est requis lorsque :", "choices": ["La tâche est critique pour la sécurité des vols", "La tâche est mineure", "Le mécanicien est expérimenté", "Le délai maintenance est court"], "answer": 0 },
+{ "chapter":"Maintenance", "q": "Un écrou autofreiné doit être remplacé si :", "choices": ["Il est légèrement sale", "Il a été peint", "La résistance au serrage n’est plus conforme", "Il est monté horizontalement"], "answer": 2 },
+{ "chapter":"Maintenance", "q": "Le marquage « torque stripe » permet :", "choices": ["Vérification visuelle d’un desserrage éventuel", "Augmenter couple serrage", "Identifier matériau fixation", "Réduire corrosion"], "answer": 0 },
+{ "chapter":"Maintenance", "q": "Un outil FOD contrôlé implique :", "choices": ["Stockage libre atelier", "Utilisation partagée sans suivi", "Inventaire et comptage systématique après intervention", "Nettoyage hebdomadaire uniquement"], "answer": 2 },
+{ "chapter":"Maintenance", "q": "Le stockage des produits chimiques maintenance exige :", "choices": ["Stockage à proximité batterie", "Respect des fiches de données sécurité (FDS)", "Mélange possible sans précaution", "Absence d’étiquetage spécifique"], "answer": 1 },
+{ "chapter":"Maintenance", "q": "Une tâche de maintenance doit être signée lorsque :", "choices": ["Elle est commencée", "Elle est planifiée", "Elle est validée par pilote", "Elle est terminée conformément aux données approuvées"], "answer": 3 },
+{ "chapter":"Maintenance", "q": "Le contrôle corrosion préventif inclut :", "choices": ["Augmentation pression cabine", "Application carburant protecteur", "Nettoyage, inspection et traitement protecteur", "Réduction intervalle vol"], "answer": 2 },
+{ "chapter":"Maintenance", "q": "Une inspection zonale consiste à :", "choices": ["Inspecter uniquement un équipement précis", "Examiner une zone spécifique indépendamment système", "Analyser performances moteur", "Vérifier documents logbook"], "answer": 1 },
+{ "chapter":"Maintenance", "q": "La durée de vie « Hard Time » signifie :", "choices": ["Remplacement selon état observé", "Remplacement uniquement après panne", "Remplacement obligatoire à échéance fixe", "Révision facultative"], "answer": 2 },
+{ "chapter":"Maintenance", "q": "La maintenance « On Condition » implique :", "choices": ["Remplacement systématique", "Ignorer données inspections", "Prolongation automatique TBO", "Surveillance état avant décision remplacement"], "answer": 3 },
+{ "chapter":"Maintenance", "q": "Un TBO (Time Between Overhaul) représente :", "choices": ["Intervalle recommandé entre révisions majeures", "Durée de vie maximale cellule", "Cycle inspection journalière", "Limite carburant embarqué"], "answer": 0 },
+{ "chapter":"Maintenance", "q": "Le nettoyage avant inspection structure est important pour :", "choices": ["Augmenter rigidité pièce", "Permettre détection défauts précis", "Modifier propriétés matériau", "Réduire masse avion"], "answer": 1 },
+{ "chapter":"Maintenance", "q": "Une contamination hydraulique peut entraîner :", "choices": ["Augmentation pression stable", "Amélioration lubrification", "Usure composants et dysfonctionnements", "Réduction température fluide"], "answer": 2 },
+{ "chapter":"Maintenance", "q": "La gestion des outils calibrés impose :", "choices": ["Utilisation libre sans contrôle", "Étalonnage annuel facultatif", "Suivi d’étalonnage périodique documenté", "Remplacement systématique mensuel"], "answer": 2 },
+{ "chapter":"Maintenance", "q": "Un contrôle après maintenance (post-maintenance check) vise à :", "choices": ["Augmenter puissance moteur", "Réduire documentation", "Supprimer inspection visuelle", "Vérifier bon fonctionnement avant remise en service"], "answer": 3 },
+{ "chapter":"Maintenance", "q": "Une erreur de maintenance doit être :", "choices": ["Ignorée si mineure", "Rapportée selon procédure SMS", "Corrigée sans traçabilité", "Signalée uniquement verbalement"], "answer": 1 },
+{ "chapter":"Maintenance", "q": "Le respect des EPI (équipements protection individuelle) est nécessaire pour :", "choices": ["Assurer sécurité du personnel", "Réduire temps intervention", "Augmenter précision mesure", "Améliorer qualité documentation"], "answer": 0 },
+{ "chapter":"Maintenance", "q": "Une consigne de navigabilité (AD) applicable doit être :", "choices": ["Ignorée si non critique visuellement", "Appliquée avant échéance définie", "Appliquée uniquement moteur", "Appliquée après TBO"], "answer": 1 },
 
-// chapitre FACTEURS HUMAINS
-{ "q": "Le modèle SHELL met en évidence :", "choices": ["Les interfaces entre l’homme et son environnement de travail", "Les performances moteur en altitude", "La structure hiérarchique maintenance", "Le cycle thermique turbine"], "answer": 0 },
-{ "q": "La fatigue peut entraîner :", "choices": ["Diminution vigilance et augmentation erreurs", "Amélioration concentration", "Réduction temps réaction", "Augmentation précision gestuelle"], "answer": 0 },
-{ "q": "Le « Dirty Dozen » représente :", "choices": ["Les 12 principaux facteurs contribuant aux erreurs humaines", "Les 12 étapes d’une visite C-Check", "Les 12 responsabilités du CRS", "Les 12 outils obligatoires atelier"], "answer": 0 },
-{ "q": "Une mauvaise communication en maintenance peut provoquer :", "choices": ["Des erreurs d’exécution ou d’interprétation", "Une réduction charge travail", "Une amélioration coordination", "Une suppression inspections"], "answer": 0 },
-{ "q": "La pression temporelle excessive favorise :", "choices": ["La prise de raccourcis non conformes", "Une meilleure rigueur documentaire", "Une diminution stress", "Une augmentation sécurité"], "answer": 0 },
-{ "q": "La complaisance apparaît lorsque :", "choices": ["La routine diminue le niveau de vigilance", "Le technicien est débutant", "Une panne majeure survient", "Un audit externe est annoncé"], "answer": 0 },
-{ "q": "Le stress chronique peut entraîner :", "choices": ["Baisse performance et jugement altéré", "Amélioration mémoire long terme", "Augmentation précision technique", "Réduction erreurs humaines"], "answer": 0 },
-{ "q": "La conscience situationnelle signifie :", "choices": ["Comprendre l’état global du système et risques associés", "Connaître uniquement sa tâche immédiate", "Se concentrer uniquement sur la documentation", "Ignorer environnement extérieur"], "answer": 0 },
-{ "q": "Un bon travail en équipe repose notamment sur :", "choices": ["Communication claire et feedback", "Hiérarchie stricte sans dialogue", "Travail isolé systématique", "Absence de procédures écrites"], "answer": 0 },
-{ "q": "La distraction en maintenance augmente le risque :", "choices": ["D’oublier une étape critique", "D’améliorer productivité", "De réduire stress", "D’augmenter conformité"], "answer": 0 },
-{ "q": "Le manque d’assertivité peut conduire à :", "choices": ["Ne pas signaler une anomalie détectée", "Améliorer esprit équipe", "Réduire conflits techniques", "Augmenter sécurité opérationnelle"], "answer": 0 },
-{ "q": "L’erreur active est généralement :", "choices": ["Une action incorrecte ayant effet immédiat", "Une défaillance organisationnelle latente", "Un défaut conception avion", "Une erreur pilote uniquement"], "answer": 0 },
-{ "q": "Une erreur latente correspond à :", "choices": ["Une faiblesse organisationnelle présente avant l’événement", "Une faute individuelle immédiate", "Un défaut mécanique soudain", "Une panne hydraulique"], "answer": 0 },
-{ "q": "La gestion du risque implique :", "choices": ["Identifier, analyser et atténuer les dangers", "Éliminer totalement toute erreur humaine", "Supprimer procédures complexes", "Travailler plus rapidement"], "answer": 0 },
-{ "q": "Le manque de ressources (outils, personnel) peut :", "choices": ["Augmenter probabilité d’erreur", "Réduire pression travail", "Améliorer coordination", "Supprimer fatigue"], "answer": 0 },
-{ "q": "Le travail en équipe multiculturelle nécessite :", "choices": ["Attention particulière à la communication", "Uniformité linguistique obligatoire", "Réduction documentation", "Suppression briefings"], "answer": 0 },
-{ "q": "Le feedback constructif permet :", "choices": ["Améliorer performance et sécurité", "Sanctionner systématiquement", "Réduire dialogue équipe", "Augmenter pression hiérarchique"], "answer": 0 },
-{ "q": "La gestion de la fatigue inclut :", "choices": ["Repos suffisant et planification adaptée", "Augmentation heures supplémentaires", "Réduction pauses", "Suppression rotation équipes"], "answer": 0 },
-{ "q": "Un briefing efficace avant tâche critique permet :", "choices": ["Aligner compréhension et responsabilités", "Réduire durée intervention uniquement", "Éviter documentation écrite", "Supprimer inspection indépendante"], "answer": 0 },
-{ "q": "La culture « Just Culture » encourage :", "choices": ["Le signalement d’erreurs sans sanction injuste", "La tolérance fautes graves répétées", "L’absence de responsabilité individuelle", "La suppression audits sécurité"], "answer": 0 },
+// chapitre Facteurs humains
+{ "chapter":"Facteurs humains", "q": "Le modèle SHELL met en évidence :", "choices": ["Les performances moteur en altitude", "Les interfaces entre l’homme et son environnement de travail", "La structure hiérarchique maintenance", "Le cycle thermique turbine"], "answer": 1 },
+{ "chapter":"Facteurs humains", "q": "La fatigue peut entraîner :", "choices": ["Amélioration concentration", "Réduction temps réaction", "Augmentation précision gestuelle", "Diminution vigilance et augmentation erreurs"], "answer": 3 },
+{ "chapter":"Facteurs humains", "q": "Le « Dirty Dozen » représente :", "choices": ["Les 12 principaux facteurs contribuant aux erreurs humaines", "Les 12 étapes d’une visite C-Check", "Les 12 responsabilités du CRS", "Les 12 outils obligatoires atelier"], "answer": 0 },
+{ "chapter":"Facteurs humains", "q": "Une mauvaise communication en maintenance peut provoquer :", "choices": ["Des erreurs d’exécution ou d’interprétation", "Une réduction charge travail", "Une amélioration coordination", "Une suppression inspections"], "answer": 0 },
+{ "chapter":"Facteurs humains", "q": "La pression temporelle excessive favorise :", "choices": ["Une meilleure rigueur documentaire", "La prise de raccourcis non conformes", "Une diminution stress", "Une augmentation sécurité"], "answer": 1 },
+{ "chapter":"Facteurs humains", "q": "La complaisance apparaît lorsque :", "choices": ["Le technicien est débutant", "Une panne majeure survient", "La routine diminue le niveau de vigilance", "Un audit externe est annoncé"], "answer": 2 },
+{ "chapter":"Facteurs humains", "q": "Le stress chronique peut entraîner :", "choices": ["Amélioration mémoire long terme", "Baisse performance et jugement altéré", "Augmentation précision technique", "Réduction erreurs humaines"], "answer": 1 },
+{ "chapter":"Facteurs humains", "q": "La conscience situationnelle signifie :", "choices": ["Connaître uniquement sa tâche immédiate", "Se concentrer uniquement sur la documentation", "Ignorer environnement extérieur", "Comprendre l’état global du système et risques associés"], "answer": 3 },
+{ "chapter":"Facteurs humains", "q": "Un bon travail en équipe repose notamment sur :", "choices": ["Communication claire et feedback", "Hiérarchie stricte sans dialogue", "Travail isolé systématique", "Absence de procédures écrites"], "answer": 0 },
+{ "chapter":"Facteurs humains", "q": "La distraction en maintenance augmente le risque :", "choices": ["D’améliorer productivité", "D’oublier une étape critique", "De réduire stress", "D’augmenter conformité"], "answer": 1 },
+{ "chapter":"Facteurs humains", "q": "Le manque d’assertivité peut conduire à :", "choices": ["Améliorer esprit équipe", "Réduire conflits techniques", "Augmenter sécurité opérationnelle", "Ne pas signaler une anomalie détectée"], "answer": 3 },
+{ "chapter":"Facteurs humains", "q": "L’erreur active est généralement :", "choices": ["Une défaillance organisationnelle latente", "Un défaut conception avion", "Une action incorrecte ayant effet immédiat", "Une erreur pilote uniquement"], "answer": 2 },
+{ "chapter":"Facteurs humains", "q": "Une erreur latente correspond à :", "choices": ["Une faute individuelle immédiate", "Une faiblesse organisationnelle présente avant l’événement", "Un défaut mécanique soudain", "Une panne hydraulique"], "answer": 1 },
+{ "chapter":"Facteurs humains", "q": "La gestion du risque implique :", "choices": ["Éliminer totalement toute erreur humaine", "Supprimer procédures complexes", "Travailler plus rapidement", "Identifier, analyser et atténuer les dangers"], "answer": 3 },
+{ "chapter":"Facteurs humains", "q": "Le manque de ressources (outils, personnel) peut :", "choices": ["Augmenter probabilité d’erreur", "Réduire pression travail", "Améliorer coordination", "Supprimer fatigue"], "answer": 0 },
+{ "chapter":"Facteurs humains", "q": "Le travail en équipe multiculturelle nécessite :", "choices": ["Uniformité linguistique obligatoire", "Réduction documentation", "Attention particulière à la communication", "Suppression briefings"], "answer": 2 },
+{ "chapter":"Facteurs humains", "q": "Le feedback constructif permet :", "choices": ["Améliorer performance et sécurité", "Sanctionner systématiquement", "Réduire dialogue équipe", "Augmenter pression hiérarchique"], "answer": 0 },
+{ "chapter":"Facteurs humains", "q": "La gestion de la fatigue inclut :", "choices": ["Augmentation heures supplémentaires", "Réduction pauses", "Suppression rotation équipes", "Repos suffisant et planification adaptée"], "answer": 3 },
+{ "chapter":"Facteurs humains", "q": "Un briefing efficace avant tâche critique permet :", "choices": ["Réduire durée intervention uniquement", "Aligner compréhension et responsabilités", "Éviter documentation écrite", "Supprimer inspection indépendante"], "answer": 1 },
+{ "chapter":"Facteurs humains", "q": "La culture « Just Culture » encourage :", "choices": ["Le signalement d’erreurs sans sanction injuste", "La tolérance fautes graves répétées", "L’absence de responsabilité individuelle", "La suppression audits sécurité"], "answer": 0 },
 
+// chapitre Aérodynamique
+{ "chapter":"Aérodynamique", "q": "Les quatre forces fondamentales agissant sur un aéronef en vol sont :", "choices": ["Portance, Pression, Traction, Gravité", "Poussée, Couple, Masse, Résistance", "Portance, Poids, Traînée, Poussée", "Portance, Vitesse, Masse, Traînée"], "answer": 2 },
+{ "chapter":"Aérodynamique", "q": "La portance est principalement générée par :", "choices": ["La pression dynamique uniquement", "La différence de pression entre intrados et extrados", "La masse volumique carburant", "La poussée moteur"], "answer": 1 },
+{ "chapter":"Aérodynamique", "q": "L’angle d’attaque est défini comme :", "choices": ["L’angle entre l’axe avion et l’horizon", "L’angle entre la poussée et la traînée", "L’angle entre intrados et extrados", "L’angle entre la corde du profil et le vent relatif"], "answer": 3 },
+{ "chapter":"Aérodynamique", "q": "Le décrochage aérodynamique se produit lorsque :", "choices": ["L’angle d’attaque dépasse l’angle critique", "La vitesse est trop élevée", "La poussée est insuffisante", "Le centre de gravité est arrière"], "answer": 0 },
+{ "chapter":"Aérodynamique", "q": "La traînée induite est principalement liée :", "choices": ["À la rugosité de surface uniquement", "À la vitesse supersonique", "À la production de portance", "À la masse avion"], "answer": 2 },
+{ "chapter":"Aérodynamique", "q": "La traînée parasite comprend :", "choices": ["Traînée induite uniquement", "Traînée de forme, de frottement et d’interférence", "Traînée compressibilité seulement", "Traînée gravitationnelle"], "answer": 1 },
+{ "chapter":"Aérodynamique", "q": "Lorsque la vitesse augmente en vol subsonique :", "choices": ["La traînée parasite augmente fortement", "La traînée induite augmente proportionnellement", "La portance diminue toujours", "La masse avion change"], "answer": 0 },
+{ "chapter":"Aérodynamique", "q": "Le centre de pression correspond :", "choices": ["Au point d’application résultant des forces aérodynamiques", "Au centre de gravité avion", "Au centre géométrique aile", "Au point d’attache moteur"], "answer": 0 },
+{ "chapter":"Aérodynamique", "q": "Un centre de gravité trop arrière entraîne :", "choices": ["Une augmentation stabilité", "Une diminution de stabilité longitudinale", "Une réduction portance", "Une diminution poussée moteur"], "answer": 1 },
+{ "chapter":"Aérodynamique", "q": "La stabilité longitudinale dépend principalement :", "choices": ["Du diamètre fuselage", "De la température extérieure", "Du type carburant utilisé", "De la position relative CG et empennage horizontal"], "answer": 3 },
+{ "chapter":"Aérodynamique", "q": "Le facteur de charge (Load Factor) représente :", "choices": ["Le rapport poussée/traînée", "La masse divisée par surface aile", "La pression dynamique", "Le rapport portance/poids"], "answer": 3 },
+{ "chapter":"Aérodynamique", "q": "Un facteur de charge supérieur à 1 signifie :", "choices": ["Que la traînée est nulle", "Que la poussée est insuffisante", "Que la portance est supérieure au poids", "Que l’avion descend"], "answer": 2 },
+{ "chapter":"Aérodynamique", "q": "La vitesse de décrochage augmente lorsque :", "choices": ["La masse diminue", "La densité air augmente", "Le facteur de charge augmente", "Les volets sont sortis"], "answer": 2 },
+{ "chapter":"Aérodynamique", "q": "Les volets (flaps) permettent principalement :", "choices": ["De réduire la traînée totale", "D’augmenter la portance maximale", "D’augmenter la stabilité directionnelle", "De diminuer le facteur de charge"], "answer": 1 },
+{ "chapter":"Aérodynamique", "q": "Les slats agissent en :", "choices": ["Augmentant la masse avion", "Retardant le décrochage à fort angle d’attaque", "Réduisant la surface alaire", "Diminuant la pression dynamique"], "answer": 1 },
+{ "chapter":"Aérodynamique", "q": "La compressibilité devient significative :", "choices": ["À basse vitesse uniquement", "En vol stationnaire", "Lorsque CG est avant", "À l’approche du nombre de Mach critique"], "answer": 3 },
+{ "chapter":"Aérodynamique", "q": "Le nombre de Mach est le rapport entre :", "choices": ["Portance et poids", "Pression statique et dynamique", "Traînée et poussée", "Vitesse avion et vitesse du son"], "answer": 3 },
+{ "chapter":"Aérodynamique", "q": "L’effet de sol se traduit par :", "choices": ["Une réduction de la traînée induite proche du sol", "Une augmentation traînée parasite", "Une diminution portance", "Une instabilité directionnelle"], "answer": 0 },
+{ "chapter":"Aérodynamique", "q": "Une aile en flèche est principalement conçue pour :", "choices": ["Augmenter portance basse vitesse", "Réduire masse avion", "Retarder les effets de compressibilité", "Augmenter stabilité latérale"], "answer": 2 },
+{ "chapter":"Aérodynamique", "q": "La dièdre positive contribue à :", "choices": ["La stabilité longitudinale", "La réduction traînée parasite", "La stabilité latérale", "L’augmentation poussée"], "answer": 2 },
+{ "chapter":"Aérodynamique", "q": "Un lacet adverse apparaît lorsque :", "choices": ["Le gouvernail est bloqué", "Le facteur de charge diminue", "Un aileron abaissé augmente la traînée d’une aile", "La poussée est asymétrique uniquement"], "answer": 2 },
+{ "chapter":"Aérodynamique", "q": "La densité de l’air influence :", "choices": ["La portance et performances avion", "Uniquement la traînée parasite", "La masse avion", "La poussée statique uniquement"], "answer": 0 },
+{ "chapter":"Aérodynamique", "q": "En altitude élevée, pour une même IAS :", "choices": ["La portance est nulle", "La TAS est plus élevée", "La traînée parasite disparaît", "Le Mach diminue toujours"], "answer": 1 },
+{ "chapter":"Aérodynamique", "q": "La vitesse indiquée (IAS) est basée sur :", "choices": ["La pression carburant", "La pression hydraulique", "La poussée moteur", "La pression dynamique mesurée par système Pitot-statique"], "answer": 3 },
+{ "chapter":"Aérodynamique", "q": "Un profil symétrique a pour caractéristique :", "choices": ["Portance nulle à angle d’attaque nul", "Portance maximale à 0°", "Traînée nulle", "Centre pression fixe"], "answer": 0 },
 
+// chapitre Masse & centrage
+{ "chapter":"Masse & centrage", "q": "Le moment en masse et centrage est défini comme :", "choices": ["Masse ÷ surface alaire", "Portance × distance", "Poids × bras de levier", "Pression × surface"], "answer": 2 },
+{ "chapter":"Masse & centrage", "q": "Le bras de levier correspond à :", "choices": ["La longueur totale du fuselage", "La distance entre le centre de gravité et un point de référence (datum)", "La distance entre deux longerons", "La hauteur du train principal"], "answer": 1 },
+{ "chapter":"Masse & centrage", "q": "Le centre de gravité (CG) est :", "choices": ["Le point d’application résultant du poids total", "Le centre géométrique de l’aile", "Le centre de pression aérodynamique", "Le point d’attache moteur principal"], "answer": 0 },
+{ "chapter":"Masse & centrage", "q": "Un CG trop avant entraîne généralement :", "choices": ["Une instabilité longitudinale", "Une augmentation de stabilité mais effort gouverne accru", "Une diminution du poids total", "Une réduction traînée induite"], "answer": 1 },
+{ "chapter":"Masse & centrage", "q": "Un CG trop arrière peut provoquer :", "choices": ["Une diminution de stabilité longitudinale", "Une meilleure récupération décrochage", "Une augmentation facteur charge maximal", "Une diminution distance décollage"], "answer": 0 },
+{ "chapter":"Masse & centrage", "q": "La masse à vide opérationnelle (OEW) comprend :", "choices": ["Passagers et fret", "Carburant utilisable uniquement", "Charge marchande maximale", "Structure, équipements fixes et fluides opérationnels"], "answer": 3 },
+{ "chapter":"Masse & centrage", "q": "La masse maximale au décollage (MTOW) est :", "choices": ["La masse maximale sans carburant", "La masse maximale autorisée au moment du décollage", "La masse structure vide", "La masse maximale atterrissage"], "answer": 1 },
+{ "chapter":"Masse & centrage", "q": "La masse maximale à l’atterrissage (MLW) est limitée principalement par :", "choices": ["La capacité réservoir carburant", "La poussée moteur disponible", "La surface alaire totale", "Les contraintes structurelles du train et fuselage"], "answer": 3 },
+{ "chapter":"Masse & centrage", "q": "La masse maximale sans carburant (MZFW) limite :", "choices": ["La charge marchande structurelle admissible", "La quantité carburant maximale", "La poussée maximale autorisée", "Le nombre passagers"], "answer": 0 },
+{ "chapter":"Masse & centrage", "q": "Le centrage est exprimé généralement en :", "choices": ["Degrés d’angle d’attaque", "% de la corde aérodynamique moyenne (MAC)", "kN de poussée", "PSI hydraulique"], "answer": 1 },
+{ "chapter":"Masse & centrage", "q": "Si une masse est déplacée vers l’arrière :", "choices": ["Le CG reste inchangé", "La masse totale diminue", "La portance diminue immédiatement", "Le CG se déplace vers l’arrière proportionnellement au moment créé"], "answer": 3 },
+{ "chapter":"Masse & centrage", "q": "Pour calculer un nouveau CG après ajout d’une masse, on doit :", "choices": ["Ajouter les moments et diviser par la masse totale", "Soustraire les bras de levier", "Diviser masse par surface alaire", "Multiplier masse par vitesse"], "answer": 0 },
+{ "chapter":"Masse & centrage", "q": "Un avion hors enveloppe centrage peut entraîner :", "choices": ["Une réduction consommation carburant", "Une augmentation automatique poussée", "Des problèmes de stabilité et contrôle", "Une amélioration performances montée"], "answer": 2 },
+{ "chapter":"Masse & centrage", "q": "Le datum est :", "choices": ["Un plan ou point de référence fixe pour mesures de bras", "Le centre gravité avion", "Le bord d’attaque aile", "Le train avant"], "answer": 0 },
+{ "chapter":"Masse & centrage", "q": "Un bras négatif signifie que la masse est :", "choices": ["Située en arrière du datum", "Située en avant du datum", "Au centre exact avion", "Au-dessus du plan neutre"], "answer": 1 },
+{ "chapter":"Masse & centrage", "q": "Le carburant consommé en vol influence le CG :", "choices": ["Toujours vers l’avant", "Toujours vers l’arrière", "Selon la position des réservoirs par rapport au datum", "Jamais le CG"], "answer": 2 },
+{ "chapter":"Masse & centrage", "q": "La charge marchande correspond à :", "choices": ["Équipements fixes avion", "Passagers, bagages et fret transportés", "Carburant inutilisable", "Huile moteur incluse OEW"], "answer": 1 },
+{ "chapter":"Masse & centrage", "q": "L’enveloppe de centrage représente :", "choices": ["La courbe poussée moteur", "La plage température cabine", "Les limites autorisées CG en fonction de la masse", "La limite pression hydraulique"], "answer": 2 },
+{ "chapter":"Masse & centrage", "q": "Une augmentation masse totale entraîne généralement :", "choices": ["Une diminution facteur charge", "Une réduction distance atterrissage", "Une baisse traînée parasite", "Une augmentation vitesse de décrochage"], "answer": 3 },
+{ "chapter":"Masse & centrage", "q": "Le chargement asymétrique peut provoquer :", "choices": ["Une variation CG longitudinal uniquement", "Une diminution masse totale", "Un déséquilibre latéral nécessitant correction", "Une perte carburant automatique"], "answer": 2 }
 
 ];
 
+function validateChapters(){
+  const allowed = new Set(CHAPTERS);
+  const unknown = new Map(); // chapter -> count
+
+  QUESTIONS.forEach((q, idx) => {
+    if(!q.chapter || !allowed.has(q.chapter)){
+      const key = q.chapter ?? "(manquant)";
+      unknown.set(key, (unknown.get(key) || 0) + 1);
+      console.warn("Chapitre invalide à l’index", idx, q);
+    }
+  });
+
+  if(unknown.size){
+    console.warn("Chapitres inconnus détectés :", Object.fromEntries(unknown));
+    alert("⚠️ Certains chapitres sont invalides. Regarde la console (F12).");
+  }else{
+    console.log("✅ Tous les chapitres sont valides.");
+  }
+}
+validateChapters();
 
 
 
@@ -506,9 +687,18 @@ let QUESTIONS = [
 function loadScores(){ try{ return JSON.parse(localStorage.getItem(LS_SCORES)||'[]') }catch{ return [] } }
 function saveScores(list){ localStorage.setItem(LS_SCORES, JSON.stringify(list.slice(-30))); }
 function addScoreRow(entry){
-  const pct = entry.total ? Math.round(entry.score/entry.total*1000)/10 : 0;
-  const tr=document.createElement('tr');
-  tr.innerHTML = `<td>${entry.name||'—'}</td><td>${entry.score}/${entry.total}</td><td>${pct}%</td><td>${entry.when}</td>`;
+  const pct = entry.answered
+  ? Math.round(entry.correct / entry.answered * 1000) / 10
+  : 0;
+
+const tr=document.createElement('tr');
+tr.innerHTML = `
+  <td>${entry.name || '—'}</td>
+  <td>${entry.answered} / ${entry.total}</td>
+  <td>${pct}%</td>
+  <td>${entry.when}</td>
+`;
+
   $('#scoreTableBody').appendChild(tr);
 }
 function renderScoreTable(){
@@ -544,7 +734,23 @@ function clearTick(){ if(tickHandle){ clearInterval(tickHandle); tickHandle=null
 function setTimer(v){ timerEl.textContent=v; }
 function startTick(){
   clearTick(); timeLeft=perQ; setTimer(timeLeft);
-  tickHandle=setInterval(()=>{ if(paused) return; timeLeft--; setTimer(Math.max(0,timeLeft)); if(timeLeft<=0){ clearTick(); onTimeout(); } },1000);
+  tickHandle=setInterval(()=>{ 
+  if(paused) return; 
+  timeLeft--; 
+  const t = Math.max(0, timeLeft);
+  setTimer(t);
+
+  // 🔥 clignote à 10s ou moins
+  if (t <= 10 && t > 0) timerEl.classList.add('timer-blink');
+  else timerEl.classList.remove('timer-blink');
+
+  if(t<=0){ 
+    timerEl.classList.remove('timer-blink');
+    clearTick(); 
+    onTimeout(); 
+  } 
+},1000);
+
 }
 
 // ====== Progress + badge
@@ -573,7 +779,7 @@ function renderQuestion(){
   current.shuffledMap = shuffled.map(o=>o.idx);
   current.shuffledAnswer = shuffled.findIndex(o=>o.idx===current.answer);
 
-  qEl.textContent=current.q;
+  qEl.textContent = `(${current.chapter}) ${current.q}`;
   renderProgress();
   feedbackEl.textContent='';
   choicesEl.innerHTML='';
@@ -645,19 +851,103 @@ function onTimeout(){
   setTimeout(()=>{ i++; renderQuestion(); }, 800);
 }
 
+const QUOTA_WEIGHTS = {
+  "Systèmes": 40,
+  "Propulsion": 35,
+  "Réglementation": 25,
+  "Électricité": 20,
+  "Structures": 18,
+  "Maintenance": 15,
+  "Facteurs humains": 10,
+  "Aérodynamique": 10,
+  "Masse & centrage": 7
+};
+const WEIGHTS_TOTAL = 180;
+
 // ====== Sélection des questions
-function buildFilteredQuestions(){
-  // Utiliser TOUTES les questions disponibles
-  const arr = shuffle(QUESTIONS.map((q, idx) => ({ q, idx })));
-  filteredQuestions = arr.map(o => o.q);
-  questionOrder = shuffle([...filteredQuestions.keys()]);
+function pickRandom(arr, n){
+  // retourne n éléments aléatoires SANS doublon
+  const copy = arr.slice();
+  shuffle(copy);
+  return copy.slice(0, Math.max(0, Math.min(n, copy.length)));
 }
+
+function computeQuotasForTotal(total){
+  // total = N demandé (ex: 60)
+  const chapters = Object.keys(QUOTA_WEIGHTS);
+
+  // 1) quota brut (float)
+  const raw = chapters.map(ch => {
+    const exact = (QUOTA_WEIGHTS[ch] / WEIGHTS_TOTAL) * total;
+    const base = Math.floor(exact);
+    const frac = exact - base;
+    return { ch, exact, base, frac };
+  });
+
+  // 2) distribuer le reste (méthode des plus grands restes)
+  let sumBase = raw.reduce((a,x)=>a+x.base, 0);
+  let remaining = total - sumBase;
+
+  raw.sort((a,b)=> b.frac - a.frac);
+  for(let k=0; k<raw.length && remaining>0; k++){
+    raw[k].base += 1;
+    remaining -= 1;
+  }
+
+  // 3) résultat en objet
+  const quotas = {};
+  raw.forEach(x => quotas[x.ch] = x.base);
+  return quotas;
+}
+
+
+function buildFilteredQuestions(){
+  // regrouper par chapitre
+  const byChapter = new Map();
+  QUESTIONS.forEach(q => {
+    const ch = q.chapter || "(manquant)";
+    if(!byChapter.has(ch)) byChapter.set(ch, []);
+    byChapter.get(ch).push(q);
+  });
+
+  // choisir quotas selon mode
+  let quotas;
+  if(qcmSettings.mode === 'quota180'){
+    quotas = { ...QUOTA_WEIGHTS }; // total 180
+  }else{
+    const N = Math.max(1, Math.min(qcmSettings.freeCount || 60, QUESTIONS.length));
+    quotas = computeQuotasForTotal(N);
+  }
+
+  // tirer selon quotas
+  let selected = [];
+  let warnings = [];
+
+  for (const [chapter, need] of Object.entries(quotas)) {
+    const pool = byChapter.get(chapter) || [];
+    const picked = pickRandom(pool, need);
+    selected = selected.concat(picked);
+
+    if (picked.length < need) {
+      warnings.push(`"${chapter}": demandé ${need}, dispo ${pool.length} => pris ${picked.length}`);
+    }
+  }
+
+  if (warnings.length) {
+    console.warn("⚠️ Stock insuffisant dans certains chapitres:", warnings);
+    alert("⚠️ Certaines catégories n’ont pas assez de questions. Voir console (F12).");
+  }
+
+  filteredQuestions = shuffle(selected);
+  questionOrder = [...filteredQuestions.keys()];
+}
+
 
 
 // ====== Démarrer / Pause / Stop
 function resetState(){
   running=false; paused=false; i=0; score=0; answersLog=[];
-  scoreEl.textContent='0'; clearTick(); timerEl.textContent='0';
+  scoreEl.textContent='0'; clearTick(); timerEl.textContent='0';timerEl.classList.remove('timer-blink');
   progressBar.style.width='0%'; progressTxt.textContent='Question 0/0';
   qEl.textContent='Clique sur Démarrer'; choicesEl.innerHTML=''; feedbackEl.textContent='';
   $('#summaryCard').style.display='block';
@@ -665,6 +955,7 @@ function resetState(){
   $('#summaryList').innerHTML = '<span class="muted">Aucune réponse pour le moment.</span>';
 }
 function startGame(fromSnapshot=false){
+  console.log("Total questions sélectionnées:", filteredQuestions.length);
   mode = 'TRAIN';
   perQ = 60; // 10 secondes fixes par question	
   if(!fromSnapshot) buildFilteredQuestions();
@@ -688,7 +979,17 @@ $('#showSummaryBtn').style.display = 'none';
 // ====== Résumé + enregistrement du score
 function recordFinalScore(){
   const name = (pseudoInput.value||'').trim() || 'Anonyme';
-  const entry = { name, score, total: filteredQuestions.length, when: nowStamp() };
+const answered = answersLog.filter(r => r && !r.timedOut).length;
+const correct  = answersLog.filter(r => r && r.correct).length;
+const total    = filteredQuestions.length;
+
+const entry = {
+  name,
+  answered,
+  correct,
+  total,   // ✅ on garde le total
+  when: nowStamp()
+};
 
   // garder l'historique détaillé pour ce QCM
   const list = loadScores();
@@ -754,7 +1055,9 @@ function buildSummary(){
 
 function finishGame(){
   if(!running) return;
-  clearTick(); running=false; paused=false;
+  clearTick();
+  timerEl.classList.remove('timer-blink');
+  running=false; paused=false;
   $('#pauseBtn').disabled=true; $('#stopBtn').disabled=true;
 
   if(mode==='EXAM'){
@@ -797,7 +1100,13 @@ function applySnapshot(s){ mode=s.mode; perQ=s.perQ; i=s.i; score=s.score; filte
 
 
 
-(function boot(){ progressTxt.textContent='Question 0/0'; timerEl.textContent='0'; renderScoreTable(); drawChart(); })();
+(function boot(){ progressTxt.textContent='Question 0/0'; timerEl.textContent='0'; renderScoreTable(); drawChart();  const title = document.querySelector('h1');
+  if(title){
+    title.textContent = qcmSettings.mode === 'free'
+      ? `✈️ QCM (${qcmSettings.freeCount}Q)`
+      : `✈️ QCM (180Q)`;
+  }
+})();
 </script>
 
 </body>
